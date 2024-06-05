@@ -306,8 +306,22 @@ async function fetchPlayerProfile(req, res) {
     }
 }
 
-// Define the endpoint
-app.get('/player/:pid/profile', fetchPlayerProfile);
+// Example usage of the fetchPlayerProfile function in an endpoint
+app.get('/player/:pid/profile', async (req, res) => {
+    const { pid } = req.params;
+
+    try {
+        const profile = await fetchPlayerProfile(pid);
+        if (profile) {
+            res.json({ status: 'success', data: profile });
+        } else {
+            res.status(404).json({ status: 'error', message: 'Player profile not found.' });
+        }
+    } catch (error) {
+        console.error('Error fetching player profile:', error);
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
+    }
+});
 
 
 // Utility function to fetch competition statistics
@@ -611,7 +625,7 @@ async function getMatchOutcome(mid) {
 
         const formatPlayerProfiles = (profiles) => {
             return profiles.map(profile => 
-                profile ? `${profile.player_info.fullname} (${profile.player_info.positionname}), Height: ${profile.player_info.height} cm, Weight: ${profile.player_info.weight} kg, Foot: ${profile.player_info.foot}` : 'Profile not available'
+                profile ? `${profile.player_info.fullname} (${profile.player_info.positionname}), Height: ${profile.player_info.height} cm, Weight: ${profile.player_info.weight} kg, Foot: ${profile.player_info.foot}\nStats:\n${profile.stats.map(stat => `Team: ${stat.team_name}, Competition: ${stat.competition_name}, Year: ${stat.year}, Goals: ${stat.goals}, Assists: ${stat.assists}, Yellow Cards: ${stat.yellowcards}, Red Cards: ${stat.redcards}, Matches: ${stat.matches}, Minutes Played: ${stat.minutesplayed}, Shots On Goal: ${stat.shotsongoal}, Shots Off Goal: ${stat.shotsoffgoal}, Shots Blocked: ${stat.shotsblocked}, Penalties: ${stat.penalties}, Corners: ${stat.corners}, Offside: ${stat.offside}`).join('\n')}` : 'Profile not available'
             ).join('\n');
         };
 
