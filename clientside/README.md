@@ -1,70 +1,68 @@
-# Getting Started with Create React App
+Match Prediction and Analysis Application
+This application is designed to provide detailed match predictions and analysis for football matches. It integrates various data sources, including player profiles, team statistics, match details, and weather conditions, to generate comprehensive match outcomes.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Features
 
-## Available Scripts
+Fetch Match Details: Retrieve detailed information about upcoming and past matches.
 
-In the project directory, you can run:
+Player Profiles: Get comprehensive profiles for players, including their statistics and performance history.
 
-### `npm start`
+Team Statistics: Access detailed statistics for teams participating in the competition.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Weather Information: Integrate weather data for the match location to provide context for the prediction.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+AI-Powered Predictions: Generate match outcome predictions using the OpenAI API.
 
-### `npm test`
+Multi-Sport Support: Extend the application to support various sports such as football, basketball, and NFL.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Enhanced Analytics: Provide advanced analytics and visualizations for match predictions and outcomes.
 
-### `npm run build`
+Prerequisites
+Node.js: Ensure you have Node.js installed on your system.
+npm: Node Package Manager is required to manage dependencies.
+API Keys: Obtain API keys for the following services:
+Soccer API (e.g., Entity Sport API)
+OpenWeatherMap API
+OpenAI API
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+API Endpoints
+Get All Seasons: GET /seasons
+Get Competitions for a Season: GET /season-competitions/:sid
+Get Competition List: GET /competitions
+Get Competition Details by ID: GET /competition-data/:cid
+Get Competition Squad: GET /competition/:cid/squad
+Get Matches for a Competition: GET /competition-matches/:cid
+Get Competition Statistics: GET /competition-statistics/:cid
+Get Player Profile by ID: GET /player/:pid/profile
+Get Match Details by Match ID: GET /matches/:mid
+Get Team Matches by Team ID: GET /team/:tid/matches
+Predict Match Outcome: GET /predict-match-outcome/:mid
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run eject`
+Usage
+Fetch Match Details:
+Use the /matches/:mid endpoint to get details about a specific match.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Player Profiles:
+Retrieve player profiles using the /player/:pid/profile endpoint.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Team Statistics:
+Access detailed team statistics with the /competition-statistics/:cid endpoint.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Weather Information:
+The weather data for the match location is automatically integrated into the match outcome predictions.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Match Outcome Predictions:
+Generate predictions for match outcomes using the /predict-match-outcome/:mid endpoint. The prediction includes detailed analysis based on various data sources.
 
-## Learn More
+Contributing
+Contributions are welcome! Feel free to open an issue or submit a pull request.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+License
+This project is licensed under the MIT License.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Acknowledgements
+Entity Sport API for providing detailed football data.
+OpenWeatherMap for weather data.
+OpenAI for AI-powered predictions.
