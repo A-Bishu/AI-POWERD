@@ -1,0 +1,161 @@
+/* App.css */
+
+/* Base Styles */
+.app-container {
+    font-family: Arial, sans-serif;
+    padding: 20px; /* Base padding */
+  }
+  
+  /* Responsive Header */
+  .header {
+    background-color: lightblue;
+    padding: 10px;
+  }
+  
+  .header-nav ul {
+    list-style: none;
+    display: flex;
+    flex-direction: row; /* Horizontal layout */
+    gap: 10px;
+  }
+  
+  .header-nav a {
+    text-decoration: none;
+    color: #333;
+  }
+  
+  .header-nav a:hover {
+    color: #4285F4; /* Hover color */
+  }
+  
+  /* Match List Styles */
+  .match-list,
+  .matches-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .match-list li,
+  .matches-list li {
+    padding: 10px 0; /* Padding for list items */
+  }
+  
+  .match-list li:last-child,
+  .matches-list li:last-child {
+    border-bottom: none;
+  }
+  
+  /* Component Styles */
+  .fetch-upcoming-matches,
+  .match-details,
+  .prediction-form {
+    border: 10px solid #ccc;
+    padding: 10px; /* Consistent padding */
+    margin: 10px 0;
+    background-color: beige; /* Consistent background color */
+  }
+  
+  .prediction-form form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .prediction-form button {
+    padding: 10px;
+    background-color: #4285F4; /* Consistent button color */
+    color: white;
+    border: none;
+    cursor: pointer;
+    width: 150px;
+  }
+  
+  .prediction-form button:hover {
+    background-color: #357AE8; /* Hover color */
+  }
+
+  /* General styles for the Prediction component */
+.prediction-container {
+  max-width: 600px; /* Limiting maximum width */
+  margin: 20px auto; /* Centering the component */
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for better focus */
+  border-radius: 8px; /* Rounded corners */
+  background: #ffffff; /* White background for the component */
+}
+
+h2 {
+  color: #333; /* Dark gray color for headings */
+  text-align: center; /* Center align the heading */
+}
+
+pre {
+  white-space: pre-wrap; /* Ensures text wraps in pre tag */
+  word-wrap: break-word; /* Break words to prevent overflow */
+  background-color: #f8f8f8; /* Light gray background for the prediction text */
+  border: 1px solid #ddd; /* Light border for the pre tag */
+  padding: 15px; /* Padding around text */
+  border-radius: 4px; /* Rounded corners for the pre tag */
+  margin-top: 20px; /* Space above the prediction text */
+}
+
+/* Loading and Error messages styling */
+.loading, .error {
+  color: #d33; /* Red color for error messages */
+  text-align: center; /* Center the text */
+  font-size: 16px; /* Appropriate font size for visibility */
+  padding: 20px; /* Padding for better spacing */
+}
+
+.loading {
+  color: #666; /* Darker text for loading message */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .prediction-container {
+      padding: 10px;
+      margin: 10px;
+  }
+
+  pre {
+      padding: 10px;
+  }
+}
+
+  
+  /* Media Queries */
+  @media (max-width: 480px) {
+    .header-nav ul {
+      flex-direction: column; /* Vertical layout for mobile */
+    }
+  
+    .app-container {
+      padding: 10px; /* Reduced padding for mobile */
+    }
+  }
+  
+  @media (min-width: 481px) and (max-width: 768px) {
+    .header-nav ul {
+      flex-direction: row; /* Horizontal layout for tablet */
+      justify-content: space-around;
+    }
+  
+    .match-list li {
+      padding: 10px 0; /* More padding for tablet */
+    }
+  }
+  
+  @media (min-width: 769px) {
+    .app-container {
+      padding: 20px; /* Default padding for desktop */
+    }
+  
+    .match-list {
+      padding: 10px;
+    }
+  
+    .match-list li {
+      padding: 10px 0;
+    }
+  }
+  
