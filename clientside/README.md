@@ -1,3 +1,27 @@
+
+src/
+├── Components/
+│   ├── Header.js
+│   ├── Footer.js
+│   ├── Dropdown.js
+│   └── Button.js
+├── Pages/
+│   ├── HomePage.js
+│   ├── Register.js
+│   ├── Login.js
+│   ├── MatchPredictionPage.js
+│   ├── SOCCER/
+│   │   ├── CompetitionSelectionPage.js
+│   │   └── MatchListPage.js
+│   ├── NFL/
+│   │   ├── CompetitionSelectionPage.js
+│   │   └── MatchListPage.js
+├── contexts/
+│   ├── AuthContext.js
+├── App.js
+└── index.js
+
+
 Match Prediction and Analysis Application
 This application is designed to provide detailed match predictions and analysis for football matches. It integrates various data sources, including player profiles, team statistics, match details, and weather conditions, to generate comprehensive match outcomes.
 

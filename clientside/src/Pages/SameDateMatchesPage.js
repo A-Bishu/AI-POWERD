@@ -6,10 +6,10 @@ import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 
 const apiBaseUrls = {
-  soccer: `${process.env.REACT_APP_SOCCER_API_BASE_URL}`,
-};
+    soccer: `${process.env.REACT_APP_SOCCER_API_BASE_URL}`,
+  };
 
-const MatchListPage = () => {
+const SameDateMatchesPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [matches, setMatches] = useState([]);
@@ -20,33 +20,23 @@ const MatchListPage = () => {
 
   useEffect(() => {
     const fetchMatches = async () => {
-      const competition = new URLSearchParams(location.search).get('competition');
       const token = process.env.REACT_APP_SOCCER_API_TOKEN;
-      const baseUrl = apiBaseUrls.soccer;
 
-      if (!competition) {
-        setError('No competition ID provided.');
-        setLoading(false);
-        return;
-      }
-
-      if (!token || !baseUrl) {
-        setError('API token or base URL is missing. Please check your environment variables.');
+      if (!token) {
+        setError('API token is missing. Please check your environment variables.');
         setLoading(false);
         return;
       }
 
       try {
-        const response = await axios.get(`${baseUrl}/competition/${competition}/matches`, {
+        const response = await axios.get(`${apiBaseUrls.soccer}/matches`, {
           params: {
-
             token,
             status: 1,
-            per_page: 10,
+            per_page: 50,
             pre_squad: true,
-            date: '2024-08-13_2025-87-27', // Modify as needed
-            timezone: '+5:30',
-          },
+            
+          }
         });
         const fetchedMatches = response.data.response?.items || [];
         setMatches(fetchedMatches);
@@ -68,18 +58,10 @@ const MatchListPage = () => {
   return (
     <>
       <Header />
-      <Box
-        sx={{
-          minHeight: '100vh',
-          background: 'linear-gradient(to right, #3f51b5, #2196f3)',
-          py: 4,
-        }}
-      >
       <Container>
-      <Paper elevation={6} sx={{ py: 4, px: 3, textAlign: 'center', backgroundColor: 'rgba(255, 255, 255, 0.9)' }}>
         <Box sx={{ my: 4, textAlign: 'center' }}>
           <Typography variant="h4" component="h1" gutterBottom>
-             Matches
+          Featured Match
           </Typography>
           {loading ? (
             <Box display="flex" justifyContent="center" alignItems="center" height="100%">
@@ -96,7 +78,6 @@ const MatchListPage = () => {
             <Grid container spacing={isSmallScreen ? 1 : 2}>
               {matches.length > 0 ? (
                 matches.map((match) => (
-                  
                     <Grid item xs={12} md={8} lg={6} key={match.mid}>
                     <Paper sx={{ p: 2, border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'lightblue' }}>
                       <Grid container justifyContent="space-between" alignItems="center">
@@ -107,15 +88,19 @@ const MatchListPage = () => {
                           </Typography>
                         </Grid>
                         <Grid item xs={5} container alignItems="center" justifyContent="flex-end">
-                          <Avatar src={match.teams.away.logo} alt={match.teams.away.tname} />
+                        <Avatar src={match.teams.away.logo} alt={match.teams.away.tname} />
                           <Typography variant="h6" sx={{ mr: 1 }}>
                             {isSmallScreen ? match.teams.away.abbr : match.teams.away.tname}
                           </Typography>
+                          
                         </Grid>
                       </Grid>
                       <Box sx={{ textAlign: 'center', mt: 1 }}>
                         <Typography variant="body2">
                           Date: {match.datestart}
+                        </Typography>
+                        <Typography variant="body2">
+                          Competition: {match.competition.cname}
                         </Typography>
                       </Box>
                       <MuiButton variant="contained" color="primary" onClick={() => handleViewPrediction(match.mid)} sx={{ mt: 1 }}>
@@ -132,12 +117,10 @@ const MatchListPage = () => {
             </Grid>
           )}
         </Box>
-        </Paper>
       </Container>
-      </Box>
       <Footer />
     </>
   );
 };
 
-export default MatchListPage;
+export default SameDateMatchesPage;
