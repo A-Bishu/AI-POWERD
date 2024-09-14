@@ -1,8 +1,10 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const OpenAI = require('openai');
 const axios = require('axios');
+const { syncDatabase } = require('./models');
 
 dotenv.config();
 
@@ -13,6 +15,38 @@ const PORT = process.env.PORT || 3003;
 app.use(express.json());
 app.use(cors());
 
+// Connect to PostgreSQL
+syncDatabase();
+
+// Proxy middleware setup for basketball
+app.use('/api/basketball', createProxyMiddleware({
+    target: 'https://basketball.entitysport.com',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/basketball': '', // remove base path
+    },
+  }));
+
+   // Proxy for NFL API
+   app.use(
+    '/api/nfl', createProxyMiddleware({
+      target: 'https://nfl.entitysport.com', // replace with the actual NFL API endpoint
+      changeOrigin: true,
+      pathRewrite: {
+        '^/api/nfl': '', // remove /api/nfl from the request path
+      },
+    })
+  );
+
+// Define Routes
+app.use('/api/auth', require('./routes/auth'));
+
+// Protect routes that require authentication with the auth middleware
+const auth = require('./middleware/auth');
+
+app.get('/protected-route', auth, (req, res) => {
+    res.json({ msg: 'This is a protected route', user: req.user });
+});
 
 
 // Cache to store match data
@@ -254,55 +288,66 @@ async function CompetitionMatches(req, res) {
 app.get('/competition-matches/:cid', CompetitionMatches);
 
 
-// Utility function to fetch player profile data
-async function fetchPlayerProfile(req, res) {
-    const { pid } = req.params;
-
+// Utility function to fetch player profile data with stats filtering
+async function fetchPlayerProfile(pid) {
     try {
         const response = await soccerApiClient.get(`/player/${pid}/profile`, {
             params: {
                 token: process.env.SOCCER_API_TOKEN,
             }
         });
-        const playerData = response.data.response.items;
+
+        const playerData = response.data.response?.items;
+
+        if (!playerData) {
+            throw new Error('Player data is undefined');
+        }
+
+        // Get the current year and set a range for the last three years
+        const currentYear = new Date().getFullYear();
+        const recentYears = [currentYear, currentYear - 1, currentYear - 2].map(year => year.toString());
 
         const formattedData = {
             player_info: {
-                fullname: playerData.player_info.fullname,
-                positionname: playerData.player_info.positionname,
-                height: playerData.player_info.height,
-                weight: playerData.player_info.weight,
-                foot: playerData.player_info.foot,
+                fullname: playerData.player_info?.fullname || 'N/A',
+                positionname: playerData.player_info?.positionname || 'N/A',
+                height: playerData.player_info?.height || 'N/A',
+                weight: playerData.player_info?.weight || 'N/A',
+                foot: playerData.player_info?.foot || 'N/A',
             },
-            team_played: playerData.team_played.map(team => ({
-                team_name: team.team.name,
-                startdate: team.startdate,
-                enddate: team.enddate,
-                shirt: team.shirt,
-            })),
-            stats: playerData.stats.seasons.map(season => ({
-                team_name: season.tname,
-                competition_name: season.cname,
-                year: season.year,
-                goals: season.data.goals || 0,
-                assists: season.data.assists || 0,
-                yellowcards: season.data.yellowcards || 0,
-                redcards: season.data.redcards || 0,
-                matches: season.data.matches || 0,
-                minutesplayed: season.data.minutesplayed || 0,
-                shotsongoal: season.data.shotsongoal || 0,
-                shotsoffgoal: season.data.shotsoffgoal || 0,
-                shotsblocked: season.data.shotsblocked || 0,
-                penalties: season.data.penalties || 0,
-                corners: season.data.corners || 0,
-                offside: season.data.offside || 0,
-            })),
+            team_played: playerData.team_played?.map(team => ({
+                team_name: team.team?.name || 'Unknown',
+                startdate: team.startdate || 'N/A',
+                enddate: team.enddate || 'N/A',
+                shirt: team.shirt || 'N/A',
+            })) || [], // default to an empty array if team_played is undefined
+            stats: playerData.stats?.seasons?.filter(season => {
+                // Filter seasons to include only those within the last three years
+                const year = season.year.toString();
+                return recentYears.includes(year) || recentYears.includes(year.slice(-2)); // Handle both full and two-digit year formats
+            }).map(season => ({
+                team_name: season.tname || 'Unknown',
+                competition_name: season.cname || 'Unknown',
+                year: season.year || 'N/A',
+                goals: season.data?.goals || 0,
+                assists: season.data?.assists || 0,
+                yellowcards: season.data?.yellowcards || 0,
+                redcards: season.data?.redcards || 0,
+                matches: season.data?.matches || 0,
+                minutesplayed: season.data?.minutesplayed || 0,
+                shotsongoal: season.data?.shotsongoal || 0,
+                shotsoffgoal: season.data?.shotsoffgoal || 0,
+                shotsblocked: season.data?.shotsblocked || 0,
+                penalties: season.data?.penalties || 0,
+                corners: season.data?.corners || 0,
+                offside: season.data?.offside || 0,
+            })) || [], // default to an empty array if no relevant seasons are found
         };
 
-        res.json({ status: 'success', data: formattedData });
+        return formattedData;
     } catch (error) {
-        console.error('Error fetching player profile:', error);
-        res.status(500).json({ status: 'error', message: 'Internal server error' });
+        console.error('Error fetching player profile:', error.message);
+        throw new Error('Failed to fetch player profile data');
     }
 }
 
@@ -318,10 +363,11 @@ app.get('/player/:pid/profile', async (req, res) => {
             res.status(404).json({ status: 'error', message: 'Player profile not found.' });
         }
     } catch (error) {
-        console.error('Error fetching player profile:', error);
+        console.error('Error fetching player profile:', error.message);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 });
+
 
 
 // Utility function to fetch competition statistics
@@ -332,7 +378,7 @@ async function fetchCompetitionStats(cid) {
             params: {
                 token: process.env.SOCCER_API_TOKEN, // Using the API token
                 per_page:20,
-                paged: 1,
+                paged: 2,
             },
         });
         if (response.data.status === "ok" && response.data.response && response.data.response.items) {
@@ -389,7 +435,7 @@ async function fetchCompetitionStats(cid) {
 
             
         } else {
-            res.status(404).json({ status: 'error', message: 'Competition statistics not found.' });
+            return null;
         }
     } catch (error) {
         console.error('Failed to fetch competition statistics:', error);
@@ -417,6 +463,8 @@ app.get('/competition-statistics/:cid', async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Error fetching competition statistics' });
     }
 });
+
+
 // Scheduled job to update the cache every 15 minutes
 setInterval(updateMatchesCache, 15 * 60 * 1000);
 
@@ -571,19 +619,20 @@ async function getMatchOutcome(mid) {
         if (!competitionDetails) {
             return "Competition details not found.";
         }
+        
         const fantasyDetails = await fetchFantasyData(mid);
         if (!fantasyDetails) {
             return "Fantasy data not found.";
         }
-
+        
         const competitionStats = await fetchCompetitionStats(cid);
         if (!competitionStats) {
             return "Competition statistics not found.";
         }
-
+        
         const homeMatches = await fetchTeamMatchs(homeTid);
         const awayMatches = await fetchTeamMatchs(awayTid);
-
+        
         const weatherData = await fetchWeather(matchLocation);
 
         function normalizePointTableData(pointTable, section) {
@@ -617,26 +666,86 @@ async function getMatchOutcome(mid) {
 
         const pointTableOverview = pointTableData.map(team => `. Team: ${team.tname}, Position: ${team.position}, Points: ${team.pointstotal}, Played: ${team.playedtotal}, Wins: ${team.wintotal}, Draws: ${team.drawtotal}, Losses: ${team.losstotal}, Goals For: ${team.goalsfortotal}, Goals Against: ${team.goalsagainsttotal}, Goal Difference: ${team.goaldifftotal}, Promotion: ${team.promotion.type} (${team.promotion.name})`).join('\n');
 
-        // Fetching player profiles for the starting lineup
-        const homeLineupPids = matchDetails.lineup?.home?.lineup?.player?.map(player => player.pid) || [];
-        const awayLineupPids = matchDetails.lineup?.away?.lineup?.player?.map(player => player.pid) || [];
-        const playerProfiles = await Promise.all([...homeLineupPids, ...awayLineupPids].map(pid => fetchPlayerProfile(pid)));
+       // Fetching player profiles for the presquad
+const homePresquadPids = fantasyDetails.teams.home?.map(player => player.pid) || [];
+const awayPresquadPids = fantasyDetails.teams.away?.map(player => player.pid) || [];
 
+// Fetch player profiles for all presquad players
+const playerProfiles = await Promise.all(
+    [...homePresquadPids, ...awayPresquadPids].map(pid => fetchPlayerProfile(pid))
+);
 
-        const formatPlayerProfiles = (profiles) => {
-            return profiles.map(profile => 
-                profile ? `${profile.player_info.fullname} (${profile.player_info.positionname}), Height: ${profile.player_info.height} cm, Weight: ${profile.player_info.weight} kg, Foot: ${profile.player_info.foot}\nStats:\n${profile.stats.map(stat => `Team: ${stat.team_name}, Competition: ${stat.competition_name}, Year: ${stat.year}, Goals: ${stat.goals}, Assists: ${stat.assists}, Yellow Cards: ${stat.yellowcards}, Red Cards: ${stat.redcards}, Matches: ${stat.matches}, Minutes Played: ${stat.minutesplayed}, Shots On Goal: ${stat.shotsongoal}, Shots Off Goal: ${stat.shotsoffgoal}, Shots Blocked: ${stat.shotsblocked}, Penalties: ${stat.penalties}, Corners: ${stat.corners}, Offside: ${stat.offside}`).join('\n')}` : 'Profile not available'
-            ).join('\n');
-        };
+// Format player profiles with stats
+const formatPlayerProfiles = (profiles) => {
+    return profiles.map(profile => 
+        profile ? 
+        `${profile.player_info.fullname} (${profile.player_info.positionname}), Height: ${profile.player_info.height} cm, Weight: ${profile.player_info.weight} kg, Foot: ${profile.player_info.foot}
+        Stats:
+        ${Array.isArray(profile.stats) 
+            ? profile.stats.map(stat => 
+                `Team: ${stat.team_name}, Competition: ${stat.competition_name}, Year: ${stat.year}, 
+                Goals: ${stat.goals}, Assists: ${stat.assists}, Yellow Cards: ${stat.yellowcards}, Red Cards: ${stat.redcards}, 
+                Matches: ${stat.matches}, Minutes Played: ${stat.minutesplayed}, Shots On Goal: ${stat.shotsongoal}, 
+                Shots Off Goal: ${stat.shotsoffgoal}, Shots Blocked: ${stat.shotsblocked}, Penalties: ${stat.penalties}, 
+                Corners: ${stat.corners}, Offside: ${stat.offside}`
+              ).join('\n') 
+            : 'Stats not available'}`
+        : 'Profile not available'
+    ).join('\n');
+};
 
-        const homePlayerProfiles = formatPlayerProfiles(playerProfiles.slice(0, homeLineupPids.length));
-        const awayPlayerProfiles = formatPlayerProfiles(playerProfiles.slice(homeLineupPids.length));
+// Split player profiles into home and away based on presquad lengths
+const homePlayerProfiles = formatPlayerProfiles(playerProfiles.slice(0, homePresquadPids.length));
+const awayPlayerProfiles = formatPlayerProfiles(playerProfiles.slice(homePresquadPids.length));
 
         
-        
-        let prompt = `
-Predict the upcoming football match:
+        let prompt = `{
+You are an expert sports analyst, with insights sharper than those of betting bookmakers.
+Analyze the upcoming football match and provide predictions. Structure your response in bullet points, covering the following sections:
 
+1. **Expected Outcome in Terms of Goals and Corners:**
+   - Predict the number of goals for both home and away teams.
+   - Predict the number of corners for both teams.
+
+2. **Key Players Likely to Impact the Match:**
+   - List key players for both teams.
+   - For each player, provide their expected number of shots, shots on target, and assists.
+
+3. **Same Game Parlay (SGP) Suggestions:**
+   - Suggest a combination of bets with high winning probability based on team dynamics and player stats.
+
+4. **Additional Predictions:**
+   - Total over and under goals for the first and second half.
+   - Most probable single bet outcome: WIN/LOSS/DOUBLE CHANCE.
+
+Use the following format for your response:
+        
+    Expected Goals Outcome:
+    Predicted Corners: 
+    Key Players and Their Contributions: 
+        Home:
+        - Player Name, Shots: <number>, Shots on Target: <number>, Assists: <number>
+        - Player Name, Shots: <number>, Shots on Target: <number>, Assists: <number>
+        - ...
+        
+        Away:
+        - Player Name, Shots: <number>, Shots on Target: <number>, Assists: <number>
+        - Player Name, Shots: <number>, Shots on Target: <number>, Assists: <number>
+        - ...
+        
+    Same Game Parlay Options:
+    - Option 1: [Description]
+    - Option 2: [Description]
+
+    Total Goals (Over/Under) for First/Second Half:
+    - First Half: [Prediction]
+    - Second Half: [Prediction]
+
+    Most Probable Single Bet:
+    - Outcome: 
+}
+
+        
 Teams: ${matchDetails.matchInfo.teams.home.tname} vs ${matchDetails.matchInfo.teams.away.tname},
 Venue: ${matchDetails.matchInfo.venue?.name || 'Unknown Venue'}, Location: ${matchDetails.matchInfo.venue?.location || 'Unknown Location'};
 Date: ${matchDetails.matchInfo.datestart}
@@ -693,15 +802,7 @@ Away Team:
 ${awayPlayerProfiles}
 
 Competition Statistics:
-${competitionStats.map(player => `Player: ${player.name}, Team: ${player.team.name}, Goals: ${player.goals}, Assists: ${player.assists}, Shots On Target: ${player.shotsOnTarget}`).join('\n')}
- 
-
-
-Questions:
-1. What is the expected outcome in terms of goals and corner counts?
-2. Who are the key players likely to impact the match outcome with possible shots and shots on target?
-3. Suggest a Same Game Parlay (SGP) option with a high probability based on team dynamics and player stats.
-4. List the input data you are getting
+${competitionStats.map(player => `Player: ${player.name}, Team: ${player.team.name}, Goals: ${player.goals}, Assists: ${player.assists}, Shots On Target: ${player.shotsOnTarget}`).join('\n')} 
 
 `;
 
@@ -710,12 +811,15 @@ Questions:
         const completion = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
-                { role: "system", content: "You are a helpful assistant." },
+                { role: "system", content: "You are a sports Analyst AI." },
                 { role: "user", content: prompt },
             ],
+            
         });
 
-        const assistantMessage = completion.choices[0].message.content.trim();
+        let assistantMessage = completion.choices[0].message.content.trim();
+        assistantMessage = assistantMessage.replace(/[*#]/g, ''); // Remove unwanted characters
+
         return assistantMessage;
     } catch (error) {
         console.error("Error getting match outcome:", error);
@@ -735,9 +839,9 @@ app.get('/predict-match-outcome/:mid', async (req, res) => {
             return res.status(500).send("Failed to generate the match outcome.");
         }
 
-        const bulletPointOutcome = outcome.split('\n').map(line => `• ${line}`).join('\n');
+        
         res.setHeader('Content-Type', 'text/plain');
-        res.send(bulletPointOutcome);
+        res.send(outcome);
         
     } catch (error) {
         console.error("Error predicting match outcome:", error);
@@ -751,182 +855,3 @@ app.listen(PORT, () => {
     updateMatchesCache(); // Initial fetch of the matches
 });
 
-
-
-/*
-async function getMatchOutcome(mid, cid) {
-    try {
-        const matchDetails = await fetchMatchDetails(mid);
-        if (!matchDetails) {
-            return "Match details not found.";
-        }
-
-        const fantasyData = await fetchFantasyData(mid);
-        if (!fantasyData) {
-            return "Fantasy data not found.";
-        }
-
-        const competitionData = await fetchCompetitionData(cid);
-        if (!competitionData) {
-            return "Competition data not found.";
-        }
-
-        // Fetch competition squad
-        const competitionSquad = await axios.get(
-            `https://soccer.entitysport.com/competition/${cid}/squad`, 
-            {
-              params: { 
-                token: process.env.SOCCER_API_TOKEN 
-              }
-            }
-          );
-          
-          // Check if the response is valid and has data
-          if (competitionSquad.data.status === "ok" && competitionSquad.data.response) {
-            const teams = competitionSquad.data.response.teams; // Extract squad information
-            // Do something with the data, like returning it or processing it further
-          } else {
-            throw new Error("Competition squad information not found.");
-          }
-          
-        // Fetch competition statistics
-        const competitionStatsRes = await axios.get(
-            `https://soccer.entitysport.com/competition/${cid}/statsv2`, 
-            {
-              params: { 
-                token: process.env.SOCCER_API_TOKEN 
-              }
-            }
-          );
-          
-          // Check if the response has valid data
-          const competitionStats = competitionStatsRes.data;
-          if (
-            competitionStats.status !== "ok" || 
-            !competitionStats.response
-          ) {
-            throw new Error("Competition statistics not found.");
-          }
-          
-          // Handle the expected data from competitionStats
-          const statistics = competitionStats.response.items; // Or other expected data structure
-          const squads = competitionSquad.data.response.teams; 
-          // Ensure competitionSquad has valid data
-          if (!squads) {
-            throw new Error("Competition squad not found.");
-          }
-
-        const formatLineup = (lineup) =>
-            lineup.map(player => `${player.pname} (${player.position})`).join(", ");
-
-        const prompt = `
-        Analyze the upcoming football match:
-        - Teams: ${matchDetails.matchInfo.teams.home.tname} vs ${matchDetails.matchInfo.teams.away.tname}
-        - Venue: ${matchDetails.matchInfo.venue?.name || 'Unknown Venue'}
-        - Match date: ${matchDetails.matchInfo.datestart}
-        - Competition squad: ${JSON.stringify(squads)}
-        - Competition statistics: ${JSON.stringify(statistics)}
-      
-        - Fantasy data: Key players ${fantasyData.teams.home.map(p => `${p.pname} (${p.rating})`).join(", ")}
-        
-        1. Predict the match outcome (win, loss, draw).
-        2. Estimate the total number of goals and corners for each team.
-        3. Suggest a same-game parlay (SGP).
-        Finally: Structure the prediction data to be suitable for charting
-        `;
-        console.log('Prompt sent to AI:', prompt);
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4-0125-preview",
-            messages: [
-                { role: "system", content: "You are a helpful assistant." },
-                { role: "user", content: prompt },
-            ],
-        });
-
-        return completion.choices[0].message.content.trim();
-
-    } catch (error) {
-        console.error("Error getting match outcome:", error);
-        return "An error occurred while generating the prediction.";
-    }
-}
-
-
-app.get('/predict-match-outcome/:mid/:cid', async (req, res) => {
-    const { mid, cid } = req.params;
-
-    try {
-        const matchDetails = await fetchMatchDetails(mid);
-        if (!matchDetails) {
-            return res.status(404).send("Match details not found.");
-        }
-
-        // Validate match data
-        if (
-            !matchDetails.matchInfo.teams ||
-            !matchDetails.matchInfo.venue ||
-            !matchDetails.headtohead ||
-            !matchDetails.lineup
-        ) {
-            return res.status(400).send("Incomplete match details.");
-        }
-
-        // Fetch additional data
-        const fantasyDetails = await fetchFantasyData(mid);
-        if (!fantasyDetails) {
-            return res.status(404).send("Fantasy data not found.");
-        }
-
-        // Get the predicted outcome
-        const outcome = await getMatchOutcome(mid, cid);
-        
-        res.json({ outcome });
-    } catch (error) {
-        console.error("Error predicting match outcome:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
-
-*/
-
-
-
-
-
-/*
-        let prompt = `Given your extensive knowledge and understanding of football dynamics, please analyze the upcoming football match with these details:
-    Teams involved: ${matchDetails.matchInfo.teams.home.tname} vs ${matchDetails.matchInfo.teams.away.tname},
-    Venue: ${matchDetails.matchInfo.venue?.name || 'Unknown Venue'},
-    Match date: ${matchDetails.matchInfo.datestart},
-    Competition squad: ${JSON.stringify(competitionSquad)}, // Including the fetched squad data
-    Head to head results: Home wins - ${matchDetails.headtohead?.totalhomewin}, Away wins - ${matchDetails.headtohead?.totalawaywin}, Draws - ${matchDetails.headtohead?.totaldraw}.
-    Current lineup available:
-    Home lineup - ${matchDetails.lineup.home ? formatLineup(matchDetails.lineup.home.lineup.player) : 'Not Available'},
-    Away lineup - ${matchDetails.lineup.away ? formatLineup(matchDetails.lineup.away.lineup.player) : 'Not Available'},
-    Fantasy details: Key players - ${fantasyDetails.teams.home.map(player => `${player.pname} (${player.rating})`).join(', ')};
-    
-    Based on the details provided, and any additional relevant data you might infer, determine:
-    1. Likely match outcome (win, loss, or draw).
-    2. Expected total goals by each team.
-    3. Estimate corners taken by each team.
-    4. Expected shots and shots on target by key players.
-    5. Identify potential standout performers or key match-ups.
-    6. Consider historical insights or trends influencing the match outcome.
-    7. Create the most likely possible Same Game Parlay (SGP).`;
-*/
-
-
- // Fetch competition squad
-       /* const squadResponse = await axios.get(
-            `https://soccer.entitysport.com/competition/${cid}/squad`,
-            {
-                params: { token: process.env.SOCCER_API_TOKEN },
-            }
-        );
-
-        if (squadResponse.data.status !== "ok" || !squadResponse.data.response) {
-            return "Competition squad information not found.";
-        }
-
-        const competitionSquad = squadResponse.data.response.teams; // Fetch competition squad
-        */
