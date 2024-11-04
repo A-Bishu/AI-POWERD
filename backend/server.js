@@ -1,12 +1,25 @@
 const express = require('express');
+const path = require('path');
+const csvParser = require('csv-parser');
+const fs = require('fs');
+const Ajv = require('ajv');
+const ajv = new Ajv();
 const dotenv = require('dotenv');
 const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const OpenAI = require('openai');
 const axios = require('axios');
 const { syncDatabase } = require('./models');
+const { sequelize } = require('./database');
+const MatchPrediction = require('./models/MatchPrediction');
+const { Op } = require('sequelize'); // Import Sequelize operators
+const dayjs = require('dayjs');       // Import dayjs for date handling
+const utc = require('dayjs/plugin/utc');
+
+dayjs.extend(utc);
 
 dotenv.config();
+
 
 const openai = new OpenAI(process.env.OPENAI_API_KEY);
 const app = express();
@@ -17,6 +30,65 @@ app.use(cors());
 
 // Connect to PostgreSQL
 syncDatabase();
+
+
+
+// Helper function to parse a CSV file
+const parseCSV = (filePath, headers) => {
+    return new Promise((resolve, reject) => {
+      const results = [];
+      fs.createReadStream(filePath)
+        .pipe(csvParser({ headers: headers, skipLines: 1}))
+        .on('data', (data) => results.push(data))
+        .on('end', () => resolve(results))
+        .on('error', (error) => reject(error));
+    });
+  };
+  
+  
+
+// Function to load CSV data
+const loadCsvData = async () => {
+    const dataDir = path.join(__dirname, 'data', 'competitions_info');
+  
+    const playerInfoPath = path.join(dataDir, 'player_info.csv');
+    const injuriesPath = path.join(dataDir, 'injuries.csv');
+    const suspensionsPath = path.join(dataDir, 'suspensions.csv');
+  
+    // Define headers for each CSV file
+    const injuriesHeaders = ['team', 'name', 'injuryType', 'expectedReturn'];
+    const suspensionsHeaders = ['team', 'name', 'suspensionReason', 'suspensionDuration'];
+    const playerInfoHeaders = ['team', 'name', 'position', 'matches', 'goals', 'assists', 'status'];
+  
+    // Load CSV data with manual headers
+    const playerInfo = await parseCSV(playerInfoPath, playerInfoHeaders);
+    const injuries = await parseCSV(injuriesPath, injuriesHeaders);
+    const suspensions = await parseCSV(suspensionsPath, suspensionsHeaders);
+  
+    // Log loaded data for debugging
+    console.log('Loaded Player Info:', playerInfo);
+    console.log('Loaded Injuries:', injuries);
+    console.log('Loaded Suspensions:', suspensions);
+  
+    return { playerInfo, injuries, suspensions };
+  };
+  
+
+
+(async () => {
+    try {
+      await sequelize.authenticate();
+      console.log('Connection to PostgreSQL has been established successfully.');
+  
+      await sequelize.sync({ alter: true }); // Synchronize models with the database
+      console.log('All models were synchronized successfully.');
+
+
+      
+    } catch (error) {
+      console.error('Unable to connect to the database:', error);
+    }
+  })();
 
 // Proxy middleware setup for basketball
 app.use('/api/basketball', createProxyMiddleware({
@@ -48,12 +120,93 @@ app.get('/protected-route', auth, (req, res) => {
     res.json({ msg: 'This is a protected route', user: req.user });
 });
 
+app.get('/match-predictions', async (req, res) => {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        date,
+        league,
+        team,
+        sort = 'date',
+      } = req.query;
+  
+      const whereConditions = {};
+  
+      // Only include matches that haven't started yet
+      whereConditions.matchDate = {
+        [Op.gt]: dayjs.utc().toDate(),
+      };
+  
+      // Filtering by date
+      if (date) {
+        const selectedDate = dayjs.utc(date);
+        const nextDay = selectedDate.add(1, 'day');
+  
+        whereConditions.matchDate = {
+          [Op.gte]: selectedDate.toDate(),
+          [Op.lt]: nextDay.toDate(),
+        };
+      }
+  
+      // Filtering by league
+      if (league) {
+        whereConditions.competitionName = {
+          [Op.iLike]: `%${league}%`,
+        };
+      }
+  
+      // Filtering by team (home or away)
+      if (team) {
+        whereConditions[Op.or] = [
+          { homeTeam: { [Op.iLike]: `%${team}%` } },
+          { awayTeam: { [Op.iLike]: `%${team}%` } },
+        ];
+      }
+  
+      // Sorting
+      const order = [];
+      if (sort === 'date') {
+        order.push(['matchDate', 'ASC']);
+      } else if (sort === 'league') {
+        order.push(['competitionName', 'ASC']);
+      } else if (sort === 'team') {
+        order.push(['homeTeam', 'ASC']);
+      } else {
+        order.push(['matchDate', 'ASC']); // Default sort
+      }
+  
+      // Pagination
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+  
+      // Fetch data from the database
+      const { count, rows } = await MatchPrediction.findAndCountAll({
+        where: whereConditions,
+        order,
+        limit: parseInt(limit),
+        offset,
+      });
+  
+      const totalPages = Math.ceil(count / limit);
+  
+      res.json({
+        totalItems: count,
+        predictions: rows,
+        totalPages,
+        currentPage: parseInt(page),
+      });
+    } catch (error) {
+      console.error('Error fetching predictions:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
 
 // Cache to store match data
 let matchesCache = [];
 
 const API_TOKEN = process.env.SOCCER_API_TOKEN;
-const API_URL = `https://soccer.entitysport.com/matches?status=1&per_page=50&pre_squad=true&token=${API_TOKEN}`;
+const API_URL = `${process.env.SOCCER_API_BASE_URL}/matches?status=1&per_page=50&pre_squad=true&token=${API_TOKEN}`;
 
 // Function to fetch matches from the API and update the cache
 async function updateMatchesCache() {
@@ -65,13 +218,15 @@ async function updateMatchesCache() {
     }
 }
 
+
+
+
 // Weathe fetching
 async function fetchWeather(location) {
-    const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
-    const weatherApiUrl = `http://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${WEATHER_API_KEY}&units=metric`;
-
+  const WEATHER_API_URL = `${process.env.WEATHER_API_BASE_URL}?q=${location}&appid=${process.env.WEATHER_API_KEY}&units=metric`;
+    
     try {
-        const response = await axios.get(weatherApiUrl);
+        const response = await axios.get(WEATHER_API_URL);
         const weatherData = response.data;
         return {
             temperature: weatherData.main.temp,
@@ -84,6 +239,30 @@ async function fetchWeather(location) {
         return null;
     }
 }
+
+
+app.post('/generate-speech', async (req, res) => {
+    const { text } = req.body;
+  
+    try {
+      const mp3 = await openai.audio.speech.create({
+        model: 'tts-1',
+        voice: 'alloy',
+        input: text,
+      });
+  
+      const buffer = Buffer.from(await mp3.arrayBuffer());
+  
+      res.set({
+        'Content-Type': 'audio/mpeg',
+        'Content-Disposition': 'attachment; filename="speech.mp3"',
+      });
+      res.send(buffer);
+    } catch (error) {
+      console.error('Error generating speech:', error);
+      res.status(500).json({ error: 'Failed to generate speech.' });
+    }
+  });
   
 // Utility function to fetch seasons
 async function seasons(req, res) {
@@ -110,8 +289,8 @@ app.get('/seasons', seasons);
 
 // Create an axios instance for API requests
 const soccerApiClient = axios.create({
-    baseURL: 'https://soccer.entitysport.com',
-    timeout: 5000, // Optional: timeout for requests
+    baseURL: process.env.SOCCER_API_BASE_URL,
+    timeout: 10000, // Optional: timeout for requests
 });
 
 // Utility function to fetch competitions for a given season
@@ -486,7 +665,7 @@ app.get('/matches/:mid', (req, res) => {
 
 // Helper function to fetch match details from the API
 async function fetchMatchDetails(mid) {
-    const url = `https://soccer.entitysport.com/matches/${mid}/info?token=${API_TOKEN}`;
+  const url = `${process.env.SOCCER_API_BASE_URL}/matches/${mid}/info?token=${API_TOKEN}`;
     try {
         const response = await axios.get(url);
         if (response.data.status === "ok" && response.data.response && response.data.response.items) {
@@ -541,7 +720,7 @@ app.get('/match-details/:mid', async (req, res) => {
 
 // Helper function to fetch fantasy data from the API
 async function fetchFantasyData(mid) {
-    const url = `https://soccer.entitysport.com/matches/${mid}/newfantasy?token=${API_TOKEN}&fantasy=new2point`;
+    const url = `${process.env.SOCCER_API_BASE_URL}/matches/${mid}/newfantasy?token=${API_TOKEN}&fantasy=new2point`;
     try {
         const response = await axios.get(url);
         if (response.data.status === "ok" && response.data.response) {
@@ -582,12 +761,13 @@ app.get('/fantasy-match-details/:mid', async (req, res) => {
 });
 
 // Fetch team matches
-const fetchTeamMatchs = async (tid, status = 2, per_page = 5, paged = 1) => {
-    const url = `https://soccer.entitysport.com/team/${tid}/matches?token=${API_TOKEN}&status=${status}&per_page=${per_page}&paged=${paged}`;
+const fetchTeamMatchs = async (tid, status = 2, per_page = 7, paged = 1) => {
+    const url = `${process.env.SOCCER_API_BASE_URL}/team/${tid}/matches?token=${API_TOKEN}&status=${status}&per_page=${per_page}&paged=${paged}`;
     try {
         const response = await axios.get(url);
         if (response.data.status === "ok" && response.data.response && response.data.response.items) {
             return response.data.response.items;
+            
         } else {
             return null;
         }
@@ -597,9 +777,175 @@ const fetchTeamMatchs = async (tid, status = 2, per_page = 5, paged = 1) => {
     }
 };
 
+// Helper function to format matches
+const formatMatches = (matches, teamId) => {
+    return matches.map(match => {
+        const isHomeTeam = match.teams.home.tid === teamId;
+        const teamName = isHomeTeam ? match.teams.home.tname : match.teams.away.tname;
+        const opponentName = isHomeTeam ? match.teams.away.tname : match.teams.home.tname;
+
+        const teamScore = isHomeTeam ? match.result.home : match.result.away;
+        const opponentScore = isHomeTeam ? match.result.away : match.result.home;
+
+        const periods = match.periods || {};
+        const p1 = periods.p1 || {};
+        const p2 = periods.p2 || {};
+        const ft = periods.ft || {};
+
+        const teamP1Score = isHomeTeam ? p1.home ?? 0 : p1.away ?? 0;
+        const opponentP1Score = isHomeTeam ? p1.away ?? 0 : p1.home ?? 0;
+
+        const teamP2Score = isHomeTeam ? p2.home ?? 0 : p2.away ?? 0;
+        const opponentP2Score = isHomeTeam ? p2.away ?? 0 : p2.home ?? 0;
+
+        const teamFTScore = isHomeTeam ? ft.home ?? 0 : ft.away ?? 0;
+        const opponentFTScore = isHomeTeam ? ft.away ?? 0 : ft.home ?? 0;
+
+        let result;
+        if (match.result.winner === 'draw' || match.result.winner === null) {
+            result = 'Draw';
+        } else if ((match.result.winner === 'home' && isHomeTeam) || (match.result.winner === 'away' && !isHomeTeam)) {
+            result = 'Win';
+        } else {
+            result = 'Loss';
+        }
+
+        const matchDate = match.datestart ? new Date(match.datestart).toLocaleDateString() : 'Unknown Date';
+
+        return `
+Team: ${teamName}        
+Opponent: ${opponentName}
+Date: ${matchDate}
+Result: ${teamScore}-${opponentScore} (${result})
+Periods:
+  First Half: ${teamP1Score}-${opponentP1Score}
+  Second Half: ${teamP2Score}-${opponentP2Score}
+  Full Time: ${teamFTScore}-${opponentFTScore}
+`;
+    }).join('\n');
+};
+
+
 
 // Endpoint to fetch match details by team ID
 app.get('/team/:tid/matches', fetchTeamMatchs);
+
+
+// Mapping of team name variations to standardized team names
+const teamNameMappings = {
+    'man united': 'manchester united',
+    'man utd': 'manchester united',
+    'man city': 'manchester city',
+    'nott’m forest': 'nottingham forest',
+    'wolves': 'wolverhampton wanderers',
+    'wolverhampton': 'wolverhampton wanderers',
+    'spurs': 'tottenham hotspur',
+    'west ham': 'west ham united',
+    'brighton': 'brighton & hove albion',
+    'leicester': 'leicester city',
+    // Add other mappings as needed
+  };
+  
+  // Function to normalize team names using the mapping
+  const normalizeTeamName = (name) => {
+    if (typeof name !== 'string') return '';
+    const normalized = name.trim().toLowerCase();
+
+   
+
+    return teamNameMappings[normalized] || normalized;
+  };
+  
+  const formatCsvDataForPrompt = (csvData, homeTeam, awayTeam) => {
+    const { playerInfo = [], injuries = [], suspensions = [] } = csvData;
+  
+    // Normalize team names
+    const normalizedHomeTeam = normalizeTeamName(homeTeam);
+    const normalizedAwayTeam = normalizeTeamName(awayTeam);
+  
+    if (normalizedHomeTeam === normalizedAwayTeam) {
+      console.log("The home team and away team are the same.");
+    } else {
+      console.log("The home team and away team are different.");
+    }
+  
+    // Filter data based on normalized team names
+    const homePlayerInfo = playerInfo.filter(player => {
+      const normalizedPlayerTeam = normalizeTeamName(player.team);
+      return normalizedPlayerTeam === normalizedHomeTeam;
+    });
+  
+    const awayPlayerInfo = playerInfo.filter(player => {
+      const normalizedPlayerTeam = normalizeTeamName(player.team);
+      return normalizedPlayerTeam === normalizedAwayTeam;
+    });
+  /*
+    const homeInjuries = injuries.filter(injury => {
+      const normalizedTeam = normalizeTeamName(injury.team);
+      return normalizedTeam === normalizedHomeTeam;
+    });
+  
+    const awayInjuries = injuries.filter(injury => {
+      const normalizedTeam = normalizeTeamName(injury.team);
+      return normalizedTeam === normalizedAwayTeam;
+    });
+  
+    const homeSuspensions = suspensions.filter(suspension => {
+      const normalizedTeam = normalizeTeamName(suspension.team);
+      return normalizedTeam === normalizedHomeTeam;
+    });
+  
+    const awaySuspensions = suspensions.filter(suspension => {
+      const normalizedTeam = normalizeTeamName(suspension.team);
+      return normalizedTeam === normalizedAwayTeam;
+    });
+  */
+    // Format the data for the prompt
+    const formatPlayerInfo = (players) => {
+        if (!players || players.length === 0) return 'No player information available.';
+        return players.map(player => {
+          let statusIndicator = '';
+          if (player.status.toLowerCase() === 'injured') {
+            statusIndicator = ' (Injured)';
+          } else if (player.status.toLowerCase() === 'suspended') {
+            statusIndicator = ' (Suspended)';
+          }
+          return `${player.name} (${player.position.charAt(0)}) - ${statusIndicator}`;
+        }).join('\n');
+      };
+      
+  /*
+    const formatInjuries = (injuries) => {
+      if (!injuries || injuries.length === 0) return 'No injuries reported.';
+      return injuries.map(injury => 
+        `${injury.name} - ${injury.injuryType}, Expected Return: ${injury.expectedReturn}`
+      ).join('\n');
+    };
+  
+    const formatSuspensions = (suspensions) => {
+      if (!suspensions || suspensions.length === 0) return 'No suspensions reported.';
+      return suspensions.map(suspension => 
+        `${suspension.name} - ${suspension.suspensionReason}, Duration: ${suspension.suspensionDuration}`
+      ).join('\n');
+    };
+  */
+    // Construct formatted data
+    const formattedData = {
+      homePlayerInfo: formatPlayerInfo(homePlayerInfo),
+      awayPlayerInfo: formatPlayerInfo(awayPlayerInfo),
+     // homeInjuries: formatInjuries(homeInjuries),
+      //awayInjuries: formatInjuries(awayInjuries),
+     // homeSuspensions: formatSuspensions(homeSuspensions),
+      //awaySuspensions: formatSuspensions(awaySuspensions),
+    };
+  
+    // Log formatted data for debugging
+    console.log('Formatted data:', formattedData);
+  
+    return formattedData;
+  };
+  
+ 
 
 
 async function getMatchOutcome(mid) {
@@ -608,12 +954,29 @@ async function getMatchOutcome(mid) {
         if (!matchDetails) {
             return "Match details not found.";
         }
+
+        const csvData = await loadCsvData();
+
+        // Extract team names
+        const homeTeam = matchDetails.matchInfo.teams.home.tname;
+        const awayTeam = matchDetails.matchInfo.teams.away.tname;
+
+        // Format CSV data
+        const formattedCsvData = formatCsvDataForPrompt(csvData, homeTeam, awayTeam);
+
+
          // Extract competition ID from match details
          const {cid, homeTid, awayTid} = matchDetails;
          const matchLocation = matchDetails.matchInfo.venue?.location || 'Unknown Location';
          if (!cid) {
              return "Competition ID not found in match details.";
          }
+
+         // Extract team IDs as strings
+         
+         const homeTeamId = matchDetails.matchInfo.teams.home.tid.toString();
+         const awayTeamId = matchDetails.matchInfo.teams.away.tid.toString();
+         
 
         const competitionDetails = await fetchCompetitionData(cid);
         if (!competitionDetails) {
@@ -698,54 +1061,20 @@ const formatPlayerProfiles = (profiles) => {
 const homePlayerProfiles = formatPlayerProfiles(playerProfiles.slice(0, homePresquadPids.length));
 const awayPlayerProfiles = formatPlayerProfiles(playerProfiles.slice(homePresquadPids.length));
 
-        
+  // Format recent matches for the prompt
+  const homeTeamMatchesOutput = homeMatches && homeMatches.length > 0
+  ? formatMatches(homeMatches, homeTeamId)
+  : 'No recent matches available.';
+
+const awayTeamMatchesOutput = awayMatches && awayMatches.length > 0
+  ? formatMatches(awayMatches, awayTeamId)
+  : 'No recent matches available.';
+
+
+
+   
         let prompt = `{
-You are an expert sports analyst, with insights sharper than those of betting bookmakers.
-Analyze the upcoming football match and provide predictions. Structure your response in bullet points, covering the following sections:
-
-1. **Expected Outcome in Terms of Goals and Corners:**
-   - Predict the number of goals for both home and away teams.
-   - Predict the number of corners for both teams.
-
-2. **Key Players Likely to Impact the Match:**
-   - List key players for both teams.
-   - For each player, provide their expected number of shots, shots on target, and assists.
-
-3. **Same Game Parlay (SGP) Suggestions:**
-   - Suggest a combination of bets with high winning probability based on team dynamics and player stats.
-
-4. **Additional Predictions:**
-   - Total over and under goals for the first and second half.
-   - Most probable single bet outcome: WIN/LOSS/DOUBLE CHANCE.
-
-Use the following format for your response:
-        
-    Expected Goals Outcome:
-    Predicted Corners: 
-    Key Players and Their Contributions: 
-        Home:
-        - Player Name, Shots: <number>, Shots on Target: <number>, Assists: <number>
-        - Player Name, Shots: <number>, Shots on Target: <number>, Assists: <number>
-        - ...
-        
-        Away:
-        - Player Name, Shots: <number>, Shots on Target: <number>, Assists: <number>
-        - Player Name, Shots: <number>, Shots on Target: <number>, Assists: <number>
-        - ...
-        
-    Same Game Parlay Options:
-    - Option 1: [Description]
-    - Option 2: [Description]
-
-    Total Goals (Over/Under) for First/Second Half:
-    - First Half: [Prediction]
-    - Second Half: [Prediction]
-
-    Most Probable Single Bet:
-    - Outcome: 
-}
-
-        
+        "You are an expert sports analyst, with insights sharper than those of betting bookmakers. Before analyzing the upcoming football match and providing predictions, search the web to gather the most recent information on team news, injuries, and suspensions, also Look for opportunities and safer bets in addition to the given data."
 Teams: ${matchDetails.matchInfo.teams.home.tname} vs ${matchDetails.matchInfo.teams.away.tname},
 Venue: ${matchDetails.matchInfo.venue?.name || 'Unknown Venue'}, Location: ${matchDetails.matchInfo.venue?.location || 'Unknown Location'};
 Date: ${matchDetails.matchInfo.datestart}
@@ -756,6 +1085,8 @@ ${weatherData ? `Temperature: ${weatherData.temperature}°C, Description: ${weat
 
 Point Table Overview:
 ${pointTableOverview}
+
+
 
 Home Games:
 ${homeTableOverview}
@@ -784,12 +1115,24 @@ Away wins: ${matchDetails.headtohead?.totalawaywin || 0},
 Draws: ${matchDetails.headtohead?.totaldraw || 0}.
 
 Recent Matches:
-Home Team:
-${homeMatches ? homeMatches.map(match => `Opponent: ${match.teams.away.tname}, Date: ${match.datestart}, Result: ${match.result.home}-${match.result.away}`).join('\n') : 'No recent matches available.'}
-Away Team:
-${awayMatches ? awayMatches.map(match => `Opponent: ${match.teams.home.tname}, Date: ${match.datestart}, Result: ${match.result.away}-${match.result.home}`).join('\n') : 'No recent matches available.'}
+ Recent Matches:
+    Home Team:
+    ${homeTeamMatchesOutput}
 
+    Away Team:
+    ${awayTeamMatchesOutput}
 
+Team Information:
+
+        Home Team Players:
+        ${formattedCsvData.homePlayerInfo}
+
+        Away Team Players:
+        ${formattedCsvData.awayPlayerInfo}
+
+       
+
+        
 Fantasy Players:
 Pre Squad Home: ${fantasyDetails.teams.home.map(player => `(${player.pid},${player.pname}) (${player.role}, ${player.rating})`).join(', ')},
 Pre Squad Away: ${fantasyDetails.teams.away.map(player => `(${player.pid},${player.pname}) (${player.role}, ${player.rating})`).join(', ')}.
@@ -804,28 +1147,221 @@ ${awayPlayerProfiles}
 Competition Statistics:
 ${competitionStats.map(player => `Player: ${player.name}, Team: ${player.team.name}, Goals: ${player.goals}, Assists: ${player.assists}, Shots On Target: ${player.shotsOnTarget}`).join('\n')} 
 
+    }
 `;
 
         console.log('Prompt sent to AI:', prompt);
 
+         // Define the function without 'strict: true'
+         const functionDefinition = {
+            name: "generateAnalysis",
+            description: "You are an expert sports analyst, with insights sharper than those of betting bookmakers. Before analyzing the upcoming football match and providing predictions, search the web to gather the most recent information on team news, injuries, and suspensions, also Look for opportunities and safer bets in addition to the given data.",
+            parameters: {
+              type: "object",
+              properties: {
+                homeTeam: { type: "string" },
+                awayTeam: { type: "string" },
+                expectedOutcome: {
+                  type: "object",
+                  properties: {
+                    goals: {
+                      type: "object",
+                      properties: {
+                        home: { type: "number" },
+                        away: { type: "number" },
+                      },
+                      required: ["home", "away"],
+                      additionalProperties: false,
+                    },
+                    corners: {
+                      type: "object",
+                      properties: {
+                        home: { type: "number" },
+                        away: { type: "number" },
+                      },
+                      required: ["home", "away"],
+                      additionalProperties: false,
+                    },
+                    goalsByPeriod: {
+                      type: "object",
+                      properties: {
+                        firstHalf: {
+                          type: "object",
+                          properties: {
+                            home: { type: "number" },
+                            away: { type: "number" },
+                          },
+                          required: ["home", "away"],
+                          additionalProperties: false,
+                        },
+                        secondHalf: {
+                          type: "object",
+                          properties: {
+                            home: { type: "number" },
+                            away: { type: "number" },
+                          },
+                          required: ["home", "away"],
+                          additionalProperties: false,
+                        },
+                        fullTime: {
+                          type: "object",
+                          properties: {
+                            home: { type: "number" },
+                            away: { type: "number" },
+                          },
+                          required: ["home", "away"],
+                          additionalProperties: false,
+                        },
+                      },
+                      required: ["firstHalf", "secondHalf", "fullTime"],
+                      additionalProperties: false,
+                    },
+                  },
+                  required: ["goals", "corners", "goalsByPeriod"],
+                  additionalProperties: false,
+                },
+                keyPlayers: {
+                  type: "object",
+                  properties: {
+                    home: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          shots: { type: "number" },
+                          shotsOnTarget: { type: "number" },
+                          assists: { type: "number" },
+                        },
+                        required: ["name", "shots", "shotsOnTarget", "assists"],
+                        additionalProperties: false,
+                      },
+                    },
+                    away: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          shots: { type: "number" },
+                          shotsOnTarget: { type: "number" },
+                          assists: { type: "number" },
+                        },
+                        required: ["name", "shots", "shotsOnTarget", "assists"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  required: ["home", "away"],
+                  additionalProperties: false,
+                },
+                sameGameParlaySuggestions: {
+                  type: "array",
+                  items: { type: "string" },
+                  additionalProperties: false,
+                },
+                additionalPredictions: {
+                  type: "object",
+                  properties: {
+                    totalGoalsOverUnder: {
+                      type: "object",
+                      properties: {
+                        firstHalf: { type: "string" },
+                        secondHalf: { type: "string" },
+                      },
+                      required: ["firstHalf", "secondHalf"],
+                      additionalProperties: false,
+                    },
+                    mostProbableSingleBetOutcome: { type: "string" },
+                  },
+                  required: ["totalGoalsOverUnder", "mostProbableSingleBetOutcome"],
+                  additionalProperties: false,
+                },
+                analysis: { type: "string", additionalProperties: false },
+                keyFactors: {
+                  type: "array",
+                  items: { type: "string" },
+                  additionalProperties: false,
+                },
+                bettingTips: {
+                  type: "array",
+                  items: { type: "string" },
+                  additionalProperties: false,
+                },
+              },
+              required: [
+                "homeTeam",
+                "awayTeam",
+                "expectedOutcome",
+                "keyPlayers",
+                "sameGameParlaySuggestions",
+                "additionalPredictions",
+                "analysis",
+                "keyFactors",
+                "bettingTips",
+              ],
+              additionalProperties: false,
+            },
+          };
+          
+
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-4o-2024-08-06",
             messages: [
                 { role: "system", content: "You are a sports Analyst AI." },
                 { role: "user", content: prompt },
             ],
+            functions: [functionDefinition],
+            function_call: { name: "generateAnalysis" },
             
         });
 
-        let assistantMessage = completion.choices[0].message.content.trim();
-        assistantMessage = assistantMessage.replace(/[*#]/g, ''); // Remove unwanted characters
+        // Get the assistant's message
+    const assistantMessage = completion.choices[0].message;
 
-        return assistantMessage;
-    } catch (error) {
-        console.error("Error getting match outcome:", error);
-        return "Unable to generate a prediction due to an internal error.";
+    
+
+    const validate = ajv.compile(functionDefinition.parameters);
+
+    // Check if the assistant made a function call
+    if (assistantMessage.function_call) {
+      // Parse the arguments
+      const functionArgs = JSON.parse(assistantMessage.function_call.arguments);
+
+      // Validate the functionArgs against your schema
+    const valid = validate(functionArgs);
+    if (!valid) {
+    console.error('Invalid assistant response:', validate.errors);
+    return "Assistant returned invalid data.";
+     }
+
+      // Prepare data to save
+      const predictionToSave = {
+        mid,
+        competitionName: competitionDetails.cname || 'Unknown Competition',
+        matchDate: new Date(matchDetails.matchInfo.datestart),
+        homeTeam: matchDetails.matchInfo.teams.home.tname,
+        awayTeam: matchDetails.matchInfo.teams.away.tname,
+        prediction: functionArgs,
+      };
+
+      // Save or update the prediction in the database
+      await MatchPrediction.upsert(predictionToSave);
+
+      // Use the analysis in your application
+      return functionArgs;
+    } else {
+      // Handle case where assistant did not return a function call
+      console.error("Assistant did not return a function call.");
+      return "Assistant did not return a function call.";
     }
+  } catch (error) {
+    console.error("Error getting match outcome:", error);
+    return "Unable to generate a prediction due to an internal error.";
+  }
 }
+
+    
 
 // GET route to predict match outcome
 app.get('/predict-match-outcome/:mid', async (req, res) => {
@@ -854,4 +1390,3 @@ app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     updateMatchesCache(); // Initial fetch of the matches
 });
-
