@@ -26,6 +26,7 @@ const competitionData = [
   { name: 'Premier League', cid: '1118', background: PremierLeagueImage },
   { name: 'LaLiga', cid: '1120', background: LaLigaImage },
   { name: 'MLS', cid: '1067', background: MLSImage },
+  { name: 'Champions Ligue', cid: '1128',}
 ];
 
 const CompetitionSelectionPage = () => {
@@ -55,7 +56,7 @@ const CompetitionSelectionPage = () => {
         params: {
           token,
           status: 3,
-          per_page: 25,
+          per_page: 50,
           paged: 1,
         },
       })

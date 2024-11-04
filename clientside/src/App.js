@@ -36,6 +36,7 @@ function App() {
           <Route path="/match-list" element={<ProtectedRoute element={<MatchListPage />} />} />
           <Route path="/match-prediction" element={<ProtectedRoute element={<MatchPredictionPage />} />} />
           <Route path="/same-date-matches" element={<SameDateMatchesPage />} />
+          
 
            {/* NFL Routes */}
           <Route path="/nfl/competition-selection" element={<NFLCompetitionSelectionPage />} />
