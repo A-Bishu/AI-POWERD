@@ -26,6 +26,12 @@ import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import backgroundImage from '../Assets/sports-background.jpg';
 
+const SectionPaper = ({ children, backgroundColor }) => (
+  <Paper elevation={3} sx={{ p: 3, backgroundColor, borderRadius: '10px', padding: '10px' }}>
+    {children}
+  </Paper>
+);
+
 const MatchPredictionPage = () => {
   const location = useLocation();
   const [prediction, setPrediction] = useState(null);
@@ -70,6 +76,13 @@ const MatchPredictionPage = () => {
     }
   };
 
+
+  const gridBackgroundStyle = {
+    backgroundColor: '#f0f0f0',
+    borderRadius: '10px',
+    padding: '10px',
+  };
+
   return (
     <>
       <Header />
@@ -93,93 +106,35 @@ const MatchPredictionPage = () => {
               boxShadow: 3,
             }}
           >
-            <Typography
-              variant="h4"
-              component="h1"
-              gutterBottom
-              textAlign="center"
-              sx={{ mb: 4 }}
-            >
+            <Typography variant="h4" textAlign="center" sx={{ mb: 4 }}>
               Match Analysis & Prediction
             </Typography>
             {loading ? (
-              <Box
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-                height="100%"
-                sx={{ backgroundColor: '#f0f0f0', borderRadius: '10px', padding: '20px' }}
-              >
+              <Box display="flex" justifyContent="center" alignItems="center" height="100%" sx={gridBackgroundStyle} aria-live="polite">
                 <CircularProgress />
-                <Typography variant="body1" component="p" sx={{ ml: 2 }}>
-                  Loading...
-                </Typography>
+                <Typography variant="body1" sx={{ ml: 2 }}>Loading...</Typography>
               </Box>
             ) : error ? (
-              <Alert severity="error" sx={{ backgroundColor: '#f0f0f0', borderRadius: '10px' }}>
-                {error}
-              </Alert>
+              <Alert severity="error" sx={gridBackgroundStyle}>{error}</Alert>
             ) : (
               prediction && (
-                <Grid container spacing={4} sx={{ backgroundColor: '#f0f0f0', borderRadius: '10px', padding: '20px' }}>
+                <Grid container spacing={4} sx={{ ...gridBackgroundStyle, backgroundColor: 'black', padding: '20px' }}>
+                  
                   {/* Expected Outcome */}
-                  {prediction.expectedOutcome && (
-                    <Grid item xs={12} sx={{ backgroundColor: '#f0f0f0', borderRadius: '10px', padding: '10px' }}>
-                      <Paper elevation={3} sx={{ p: 3, backgroundColor:  '#e0f7fa' }}>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12}>
-                            <Typography variant="h5" gutterBottom>
-                              Expected Outcome
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={12}>
-                            <Typography variant="body1">
-                              <strong>Goals:</strong> {prediction.homeTeam} -{' '}
-                              {prediction.expectedOutcome.goals.home ?? 'N/A'}, {prediction.awayTeam} -{' '}
-                              {prediction.expectedOutcome.goals.away ?? 'N/A'}
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={12}>
-                            <Typography variant="body1">
-                              <strong>Corners:</strong> Home -{' '}
-                              {prediction.expectedOutcome.corners.home ?? 'N/A'}, Away -{' '}
-                              {prediction.expectedOutcome.corners.away ?? 'N/A'}
-                            </Typography>
-                          </Grid>
-                          {prediction.expectedOutcome.goalsByPeriod && (
-                            <>
-                              <Grid item xs={12}>
-                                <Typography variant="body1" gutterBottom>
-                                  <strong>Goals by Period:</strong>
-                                </Typography>
-                              </Grid>
-                              <Grid item xs={12}>
-                                <Typography variant="body2">
-                                  <em>First Half:</em> Home -{' '}
-                                  {prediction.expectedOutcome.goalsByPeriod.firstHalf.home ?? 'N/A'}, Away -{' '}
-                                  {prediction.expectedOutcome.goalsByPeriod.firstHalf.away ?? 'N/A'}
-                                </Typography>
-                              </Grid>
-                              <Grid item xs={12}>
-                                <Typography variant="body2">
-                                  <em>Second Half:</em> Home -{' '}
-                                  {prediction.expectedOutcome.goalsByPeriod.secondHalf.home ?? 'N/A'}, Away -{' '}
-                                  {prediction.expectedOutcome.goalsByPeriod.secondHalf.away ?? 'N/A'}
-                                </Typography>
-                              </Grid>
-                              <Grid item xs={12}>
-                                <Typography variant="body2">
-                                  <em>Full Time:</em> Home -{' '}
-                                  {prediction.expectedOutcome.goalsByPeriod.fullTime.home ?? 'N/A'}, Away -{' '}
-                                  {prediction.expectedOutcome.goalsByPeriod.fullTime.away ?? 'N/A'}
-                                </Typography>
-                              </Grid>
-                            </>
-                          )}
-                        </Grid>
-                      </Paper>
+                  {prediction?.expectedOutcome && (
+                    <Grid item xs={12} sx={gridBackgroundStyle}>
+                      <SectionPaper backgroundColor="#e0f7fa">
+                        <Typography variant="h5">Expected Outcome</Typography>
+                        <Typography variant="body1">
+                          <strong>Goals:</strong> {prediction?.homeTeam} - {prediction?.expectedOutcome?.goals?.home ?? 'N/A'}, {prediction?.awayTeam} - {prediction?.expectedOutcome?.goals?.away ?? 'N/A'}
+                        </Typography>
+                        <Typography variant="body1">
+                          <strong>Corners:</strong> Home - {prediction?.expectedOutcome?.corners?.home ?? 'N/A'}, Away - {prediction?.expectedOutcome?.corners?.away ?? 'N/A'}
+                        </Typography>
+                      </SectionPaper>
                     </Grid>
                   )}
+
 
                   {/* Key Players */}
                   {prediction.keyPlayers && (

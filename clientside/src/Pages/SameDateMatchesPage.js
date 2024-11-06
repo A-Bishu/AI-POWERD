@@ -20,7 +20,7 @@ const SameDateMatchesPage = () => {
 
   useEffect(() => {
     const fetchMatches = async () => {
-      const token = process.env.REACT_APP_SOCCER_API_TOKEN;
+      const token = process.env.REACT_APP_SOCCER_API_KEY;
 
       if (!token) {
         setError('API token is missing. Please check your environment variables.');

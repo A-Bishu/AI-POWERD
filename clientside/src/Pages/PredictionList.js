@@ -134,7 +134,7 @@ const PredictionList = () => {
   };
 
   const generatePredictionText = (prediction) => {
-    let text = `${prediction.homeTeam} versus ${prediction.awayTeam} on ${new Date(
+    let text = `${prediction.homeTeam} versus ${prediction.awayTeam} on ${dayjs(
       prediction.matchDate
     ).format('YYYY-MM-DD HH:mm')}. `;
 

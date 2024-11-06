@@ -39,7 +39,7 @@ const MatchListPage = () => {
   useEffect(() => {
     const fetchMatches = async () => {
       const competition = new URLSearchParams(location.search).get('competition');
-      const token = process.env.REACT_APP_SOCCER_API_TOKEN;
+      const token = process.env.REACT_APP_SOCCER_API_KEY;
       const baseUrl = apiBaseUrls.soccer;
 
       if (!competition) {

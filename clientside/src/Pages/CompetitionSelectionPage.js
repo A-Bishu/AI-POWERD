@@ -43,7 +43,7 @@ const CompetitionSelectionPage = () => {
     // Extract 'sport' parameter from URL query string
     const sport = new URLSearchParams(location.search).get('sport');
     
-    const token = process.env.REACT_APP_SOCCER_API_TOKEN;
+    const token = process.env.REACT_APP_SOCCER_API_KEY;
 
     if (!sport) {
       setError('No sport selected. Please go back and select a sport.');
