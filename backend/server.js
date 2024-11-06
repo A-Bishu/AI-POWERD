@@ -205,7 +205,7 @@ app.get('/match-predictions', async (req, res) => {
 // Cache to store match data
 let matchesCache = [];
 
-const API_TOKEN = process.env.SOCCER_API_TOKEN;
+const API_TOKEN = process.env.SOCCER_API_KEY;
 const API_URL = `${process.env.SOCCER_API_BASE_URL}/matches?status=1&per_page=50&pre_squad=true&token=${API_TOKEN}`;
 
 // Function to fetch matches from the API and update the cache
@@ -269,7 +269,7 @@ async function seasons(req, res) {
     try {
         const response = await soccerApiClient.get('/seasons/', {
             params: {
-                token: process.env.SOCCER_API_TOKEN,
+                token: process.env.SOCCER_API_KEY,
             },
         });
 
@@ -301,7 +301,7 @@ async function SeasonCompetitions(req, res) {
     try {
         const response = await soccerApiClient.get(`/season/${sid}/competitions`, {
             params: {
-                token: process.env.SOCCER_API_TOKEN,
+                token: process.env.SOCCER_API_KEY,
                 per_page,
                 paged,
             },
@@ -328,7 +328,7 @@ async function CompetitionList(req, res) {
     try {
         const response = await soccerApiClient.get('/competitions', {
             params: {
-                token: process.env.SOCCER_API_TOKEN, // Ensure your token is correct
+                token: process.env.SOCCER_API_KEY, // Ensure your token is correct
                 status,
                 per_page,
                 paged,
@@ -353,7 +353,7 @@ async function fetchCompetitionData(cid) {
     try {
         const response = await soccerApiClient.get(`/competition/${cid}`, {
             params: {
-                token: process.env.SOCCER_API_TOKEN,
+                token: process.env.SOCCER_API_KEY,
             },
         });
 
@@ -399,7 +399,7 @@ async function CompetitionSquad(req, res) {
     try {
         const response = await soccerApiClient.get(`/competition/${cid}/squad`, {
             params: {
-                token: process.env.SOCCER_API_TOKEN,
+                token: process.env.SOCCER_API_KEY,
                 per_page,
                 paged,
             },
@@ -442,7 +442,7 @@ async function CompetitionMatches(req, res) {
     try {
         const response = await soccerApiClient.get(`/competition/${cid}/matches`, {
             params: {
-                token: process.env.SOCCER_API_TOKEN,
+                token: process.env.SOCCER_API_KEY,
                 status: 1, // 1 for active or upcoming matches
                 per_page,
                 paged,
@@ -472,7 +472,7 @@ async function fetchPlayerProfile(pid) {
     try {
         const response = await soccerApiClient.get(`/player/${pid}/profile`, {
             params: {
-                token: process.env.SOCCER_API_TOKEN,
+                token: process.env.SOCCER_API_KEY,
             }
         });
 
@@ -555,7 +555,7 @@ async function fetchCompetitionStats(cid) {
     try {
         const response = await soccerApiClient.get(`/competition/${cid}/statsv2`, {
             params: {
-                token: process.env.SOCCER_API_TOKEN, // Using the API token
+                token: process.env.SOCCER_API_KEY, // Using the API token
                 per_page:20,
                 paged: 2,
             },
