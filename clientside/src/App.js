@@ -30,9 +30,9 @@ function App() {
       
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/competition-selection" element={<ProtectedRoute element={<CompetitionSelectionPage />} />}/>
+          {/*<Route path="/register" element={<Register />} />*/}
+          {/*<Route path="/login" element={<Login />} />*/}
+          <Route path="/competition-selection"  element={<CompetitionSelectionPage />} />
           <Route path="/match-list" element={<ProtectedRoute element={<MatchListPage />} />} />
           <Route path="/match-prediction" element={<ProtectedRoute element={<MatchPredictionPage />} />} />
           <Route path="/same-date-matches" element={<SameDateMatchesPage />} />
