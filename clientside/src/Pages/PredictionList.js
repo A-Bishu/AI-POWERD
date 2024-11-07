@@ -51,7 +51,7 @@ const PredictionList = () => {
   useEffect(() => {
     const fetchPredictions = async () => {
       setLoading(true);
-      const baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000';
+      const baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3003';
       try {
         const response = await axios.get(`${baseUrl}/match-predictions`, {
           params: {
