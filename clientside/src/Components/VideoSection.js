@@ -51,8 +51,8 @@ const VideoSection = () => {
         <iframe
           src={competitionVideos[selectedCompetition]}
           frameBorder="0"
-          allow="encrypted-media; fullscreen;"
-          allowFullScreen
+          allow="encrypted-media; fullscreen"
+         
           title={`${selectedCompetition} Video`}
           style={{
             position: 'absolute',
