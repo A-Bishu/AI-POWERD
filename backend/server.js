@@ -23,10 +23,15 @@ dotenv.config();
 
 const openai = new OpenAI(process.env.OPENAI_API_KEY);
 const app = express();
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT;
 
 app.use(express.json());
-app.use(cors());
+
+const corsOptions = {
+  origin:'https://yellow-mushroom-0e550df10.5.azurestaticapps.net',
+  optionSuccessStatus:200
+};
+app.use(cors(corsOptions));
 
 // Connect to PostgreSQL
 syncDatabase();
