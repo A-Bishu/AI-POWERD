@@ -16,16 +16,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkAuthStatus = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          const response = await axios.get(`${API_URL}/check-token`, {
-            headers: {
-              'x-auth-token': token
-            }
-          });
-          setIsAuthenticated(response.data.isAuthenticated);
-        }
+        const response = await axios.get(`${API_URL}/check-token`, {
+          headers: { 'x-auth-token': token },
+        });
+        setIsAuthenticated(response.data.isAuthenticated);
       } catch (error) {
         console.error('Error checking auth status:', error);
         setIsAuthenticated(false);
@@ -33,6 +33,8 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     };
+    
+    
 
     checkAuthStatus();
   }, []);

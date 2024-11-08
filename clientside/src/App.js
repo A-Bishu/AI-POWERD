@@ -26,7 +26,7 @@ import BasketballMatchListPage from './Pages/BASKETBALL/BasketballMatchListPage'
 function App() {
   return (
     <Router>
-    <AuthProvider>
+    
       
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -48,7 +48,7 @@ function App() {
           
         </Routes>
       
-    </AuthProvider>
+   
     </Router>
   );
 }
