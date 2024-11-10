@@ -14,6 +14,7 @@ import Ligue1Image from '../Assets/Ligue_1_image.jpg';
 import PremierLeagueImage from '../Assets/Premier_League_image.jpg';
 import LaLigaImage from '../Assets/LaLiga_image.jpg';
 import MLSImage from '../Assets/MLS_image.jpg';
+import ChampionsLeague from '../Assets/UEFA_image.jpg';
 
 const apiBaseUrls = {
   soccer: process.env.REACT_APP_SOCCER_API_BASE_URL,
@@ -26,7 +27,8 @@ const competitionData = [
   { name: 'Premier League', cid: '1118', background: PremierLeagueImage },
   { name: 'LaLiga', cid: '1120', background: LaLigaImage },
   { name: 'MLS', cid: '1067', background: MLSImage },
-  { name: 'Champions Ligue', cid: '1128',}
+  { name: 'UEFA Champions League', cid: '1128', background: ChampionsLeague},
+  
 ];
 
 const CompetitionSelectionPage = () => {

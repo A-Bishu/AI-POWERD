@@ -36,7 +36,7 @@ const MatchPredictionPage = () => {
   const location = useLocation();
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [shareUrl, setShareUrl] = useState('https://www.sportifyai.com');
+  const [shareUrl, setShareUrl] = useState('https://www.sportiifyai.com');
   const [error, setError] = useState('');
 
   useEffect(() => {
