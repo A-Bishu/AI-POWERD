@@ -9,12 +9,11 @@ const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const OpenAI = require('openai');
 const axios = require('axios');
-const { syncDatabase } = require('./models');
-const { sequelize } = require('./database');
-const MatchPrediction = require('./models/MatchPrediction');
+
 const { Op } = require('sequelize'); // Import Sequelize operators
 const dayjs = require('dayjs');       // Import dayjs for date handling
 const utc = require('dayjs/plugin/utc');
+const { sequelize, syncDatabase, User, MatchPrediction } = require('./database');
 
 dayjs.extend(utc);
 
@@ -36,6 +35,9 @@ app.use(cors(corsOptions));
 // Connect to PostgreSQL
 syncDatabase();
 
+app.get('/', (req, res) => {
+  res.send('Welcome to the API');
+});
 
 
 // Helper function to parse a CSV file
