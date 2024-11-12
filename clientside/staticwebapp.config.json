@@ -11,14 +11,10 @@
       {
         "route": "/*",
         "rewrite": "/index.html"
-      },
-      {
-        "mimeTypes": {
-          ".json": "application/json"
-        }
       }
-      
-    ]
+    ],
+    "mimeTypes": {
+      ".json": "application/json"
+    }
   }
-  
   
