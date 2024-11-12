@@ -5,8 +5,8 @@ import { Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 const competitionVideos = {
   'All Leagues': process.env.REACT_APP_ALL_LEAGUES_VIDEO_URL,
   'Premier League': process.env.REACT_APP_PREMIER_LEAGUE_VIDEO_URL,
-  LaLiga: process.env.REACT_APP_LALIGA_VIDEO_URL,
-  Bundesliga: process.env.REACT_APP_BUNDESLIGA_VIDEO_URL,
+  'LaLiga': process.env.REACT_APP_LALIGA_VIDEO_URL,
+  'Bundesliga': process.env.REACT_APP_BUNDESLIGA_VIDEO_URL,
   'Serie A': process.env.REACT_APP_SERIE_A_VIDEO_URL,
   'Ligue 1': process.env.REACT_APP_LIGUE1_VIDEO_URL,
 };

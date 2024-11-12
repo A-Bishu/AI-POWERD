@@ -23,7 +23,7 @@ const BasketballCompetitionSelectionPage = () => {
   useEffect(() => {
     const fetchCompetitions = async () => {
       const sport = new URLSearchParams(location.search).get('sport');
-      const token = process.env.REACT_APP_BASKETBALL_API_TOKEN;
+      const token = process.env.REACT_APP_BASKETBALL_API_KEY;
 
       if (apiBaseUrls[sport] && token) {
         try {
