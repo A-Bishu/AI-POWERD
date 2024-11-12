@@ -1,20 +1,21 @@
 {
-    "routes": [
-      {
-        "route": "/static/*",
-        "serve": "/static"
-      },
-      {
-        "route": "/same-date-matches",
-        "rewrite": "/index.html"
-      },
-      {
-        "route": "/*",
-        "rewrite": "/index.html"
-      }
-    ],
-    "mimeTypes": {
-      ".json": "application/json"
+  "routes": [
+    {
+      "route": "/static/*",
+      "serve": "/static"
+    },
+    {
+      "route": "/same-date-matches",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/*",
+      "rewrite": "/index.html"
     }
+  ],
+  "mimeTypes": {
+    ".json": "application/json"
   }
+}
+
   
