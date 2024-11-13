@@ -1,4 +1,3 @@
-// src/pages/Login.js
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Container, Box, Typography, TextField, Button, Grid, Alert, CircularProgress } from '@mui/material';
@@ -8,11 +7,15 @@ import Footer from '../Components/Footer';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  if (isAuthenticated) {
+    navigate('/match-prediction');
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,7 +25,7 @@ const Login = () => {
       await login(email, password);
       navigate('/match-prediction');
     } catch (error) {
-      setError(error.message);
+      setError(error.response?.data?.message || "Login failed. Please check your credentials.");
     }
     setLoading(false);
   };
@@ -35,7 +38,7 @@ const Login = () => {
           <Typography variant="h4" component="h1" gutterBottom>
             Login
           </Typography>
-          {error && <Alert severity="error" role="alert">{error}</Alert>}
+          {error && <Alert severity="error" role="alert" aria-live="assertive">{error}</Alert>}
           <form onSubmit={handleLogin}>
             <Grid container spacing={2} justifyContent="center">
               <Grid item xs={12} sm={6}>
