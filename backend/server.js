@@ -30,7 +30,7 @@ const corsOptions = {
   origin:'https://yellow-mushroom-0e550df10.5.azurestaticapps.net',
   optionSuccessStatus:200
 };*/
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Connect to PostgreSQL
 syncDatabase();
