@@ -24,6 +24,8 @@ import Footer from '../Components/Footer';
 dayjs.extend(utc);
 
 
+
+
 const MatchListPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,7 +39,7 @@ const MatchListPage = () => {
     const fetchMatches = async () => {
       const competition = new URLSearchParams(location.search).get('competition');
       const token = process.env.REACT_APP_SOCCER_API_KEY;
-      const baseUrl = process.env.REACT_APP_SOCCER_API_BASE_URL;
+      const baseUrl = location.state?.baseUrl || process.env.REACT_APP_SOCCER_API_BASE_URL;
 
       if (!competition) {
         setError('No competition ID provided.');
@@ -98,7 +100,7 @@ const MatchListPage = () => {
     };
 
     fetchMatches();
-  }, [location.search]); // **Updated dependency array**
+  }, [location.search, location.state]); // **Updated dependency array**
 
   const handleViewPrediction = (matchId) => {
     navigate(`/match-prediction?match=${matchId}`);

@@ -101,7 +101,10 @@ const CompetitionSelectionPage = () => {
 
   const handleViewMatches = (cid) => {
     if (cid) {
-      navigate(`/match-list?competition=${cid}`);
+      navigate(`/match-list?competition=${cid}`, {
+        state: { baseUrl: apiBaseUrls.soccer },
+      });
+
     } else {
       setError('Please select a competition first.');
     }
