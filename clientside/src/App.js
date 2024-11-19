@@ -19,36 +19,31 @@ import NFLMatchListPage from './Pages/NFL/NFLMatchListPage';
 import BasketballCompetitionSelectionPage from './Pages/BASKETBALL/BasketballCompetitionSelectionPage';
 import BasketballMatchListPage from './Pages/BASKETBALL/BasketballMatchListPage';
 
-
-
-
-
 function App() {
   return (
     <Router>
-    <AuthProvider>
-      
+      <AuthProvider>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/competition-selection" element={<ProtectedRoute element={<CompetitionSelectionPage />} />}/>
-          <Route path="/match-list" element={<ProtectedRoute element={<MatchListPage />} />} />
-          <Route path="/match-prediction" element={<ProtectedRoute element={<MatchPredictionPage />} />} />
+          <Route path="/competition-selection" element={<CompetitionSelectionPage />} />
+          <Route path="/match-list" element={<MatchListPage />} />
           <Route path="/same-date-matches" element={<SameDateMatchesPage />} />
-          
 
-           {/* NFL Routes */}
+          {/* Protected Route for Match Prediction */}
+          <Route path="/match-prediction" element={<ProtectedRoute element={<MatchPredictionPage />} />} />
+
+          {/* NFL Public Routes */}
           <Route path="/nfl/competition-selection" element={<NFLCompetitionSelectionPage />} />
           <Route path="/nfl/match-list" element={<NFLMatchListPage />} />
 
-            {/* Basketball Routes */}
+          {/* Basketball Public Routes */}
           <Route path="/basketball/competition-selection" element={<BasketballCompetitionSelectionPage />} />
           <Route path="/basketball/match-list" element={<BasketballMatchListPage />} />
-          
         </Routes>
-      
-    </AuthProvider>
+      </AuthProvider>
     </Router>
   );
 }
