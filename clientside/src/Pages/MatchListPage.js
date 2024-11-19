@@ -23,9 +23,6 @@ import Footer from '../Components/Footer';
 
 dayjs.extend(utc);
 
-const apiBaseUrls = {
-  soccer: process.env.REACT_APP_SOCCER_API_BASE_URL,
-};
 
 const MatchListPage = () => {
   const navigate = useNavigate();
@@ -40,7 +37,7 @@ const MatchListPage = () => {
     const fetchMatches = async () => {
       const competition = new URLSearchParams(location.search).get('competition');
       const token = process.env.REACT_APP_SOCCER_API_KEY;
-      const baseUrl = apiBaseUrls.soccer;
+      const baseUrl = process.env.REACT_APP_SOCCER_API_BASE_URL;
 
       if (!competition) {
         setError('No competition ID provided.');
@@ -53,6 +50,8 @@ const MatchListPage = () => {
         setLoading(false);
         return;
       }
+
+      setLoading(true);
 
       try {
         // **Fixed the date parameter to a valid range**
