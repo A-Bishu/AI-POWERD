@@ -23,7 +23,7 @@ import Footer from '../Components/Footer';
 
 dayjs.extend(utc);
 
-
+const apiBaseUrls = process.env.REACT_APP_SOCCER_API_BASE_URL;
 
 
 const MatchListPage = () => {
@@ -39,7 +39,7 @@ const MatchListPage = () => {
     const fetchMatches = async () => {
       const competition = new URLSearchParams(location.search).get('competition');
       const token = process.env.REACT_APP_SOCCER_API_KEY;
-      const baseUrl = location.state?.baseUrl || process.env.REACT_APP_SOCCER_API_BASE_URL;
+      const baseUrl = apiBaseUrls;
 
       if (!competition) {
         setError('No competition ID provided.');
@@ -53,8 +53,6 @@ const MatchListPage = () => {
         return;
       }
 
-      setLoading(true);
-
       try {
         // **Fixed the date parameter to a valid range**
         // Alternatively, make this dynamic based on current date or user input
@@ -62,16 +60,13 @@ const MatchListPage = () => {
         const endDate = dayjs().add(1, 'month').format('YYYY-MM-DD');
         const dateRange = `${startDate}_${endDate}`;
 
-        const apiUrl = `${baseUrl}/competition/${competition}/matches`;
-        console.log('Fetching matches from:', apiUrl);
-    
-        const response = await axios.get(apiUrl, {
+        const response = await axios.get(`${baseUrl}/competition/${competition}/matches`, {
           params: {
             token,
             status: 1,
             per_page: 20,
             pre_squad: true,
-            date: dateRange,
+            date: dateRange, // **Updated to dynamic date range**
             timezone: '+5:30',
           },
         });
@@ -100,7 +95,7 @@ const MatchListPage = () => {
     };
 
     fetchMatches();
-  }, [location.search, location.state]); // **Updated dependency array**
+  }, [location.search]); // **Updated dependency array**
 
   const handleViewPrediction = (matchId) => {
     navigate(`/match-prediction?match=${matchId}`);
