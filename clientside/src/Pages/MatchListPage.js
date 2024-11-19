@@ -61,13 +61,16 @@ const MatchListPage = () => {
         const endDate = dayjs().add(1, 'month').format('YYYY-MM-DD');
         const dateRange = `${startDate}_${endDate}`;
 
-        const response = await axios.get(`${baseUrl}/competition/${competition}/matches`, {
+        const apiUrl = `${baseUrl}/competition/${competition}/matches`;
+        console.log('Fetching matches from:', apiUrl);
+    
+        const response = await axios.get(apiUrl, {
           params: {
             token,
             status: 1,
             per_page: 20,
             pre_squad: true,
-            date: dateRange, // **Updated to dynamic date range**
+            date: dateRange,
             timezone: '+5:30',
           },
         });
