@@ -25,12 +25,12 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 
 app.use(express.json());
-
+/*
 const corsOptions = {
   origin:'https://yellow-mushroom-0e550df10.5.azurestaticapps.net',
   optionSuccessStatus:200
-};
-app.use(cors(corsOptions));
+};*/
+app.use(cors());
 
 // Connect to PostgreSQL
 syncDatabase();
@@ -96,7 +96,7 @@ const loadCsvData = async () => {
       console.error('Unable to connect to the database:', error);
     }
   })();
-
+/*
 // Proxy middleware setup for basketball
 app.use('/api/basketball', createProxyMiddleware({
     target: 'https://basketball.entitysport.com',
@@ -116,7 +116,7 @@ app.use('/api/basketball', createProxyMiddleware({
       },
     })
   );
-
+*/
 // Define Routes
 app.use('/api/auth', require('./routes/auth'));
 
