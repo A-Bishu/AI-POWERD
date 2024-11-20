@@ -23,7 +23,6 @@ import Footer from '../Components/Footer';
 
 dayjs.extend(utc);
 
-const apiBaseUrls = process.env.REACT_APP_SOCCER_API_BASE_URL;
 
 
 const MatchListPage = () => {
@@ -39,7 +38,7 @@ const MatchListPage = () => {
     const fetchMatches = async () => {
       const competition = new URLSearchParams(location.search).get('competition');
       const token = process.env.REACT_APP_SOCCER_API_KEY;
-      const baseUrl = apiBaseUrls;
+      const baseUrl = process.env.REACT_APP_SOCCER_API_BASE_URL;
 
       if (!competition) {
         setError('No competition ID provided.');

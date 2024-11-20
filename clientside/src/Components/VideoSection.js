@@ -3,7 +3,7 @@ import { Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
 // Mapping of competitions to video URLs using environment variables
 const competitionVideos = {
-  'All Leagues': process.env.REACT_APP_ALL_LEAGUES_VIDEO_URL,
+  'All Leagues': process.env.REACT_APP_ALL_LEAGUES_VIDEO_URL || '',
   'Premier League': process.env.REACT_APP_PREMIER_LEAGUE_VIDEO_URL,
   'LaLiga': process.env.REACT_APP_LALIGA_VIDEO_URL,
   'Bundesliga': process.env.REACT_APP_BUNDESLIGA_VIDEO_URL,
