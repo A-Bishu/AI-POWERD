@@ -25,12 +25,12 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 
 app.use(express.json());
-
+/*
 const corsOptions = {
   origin:'https://lively-field-044a0b80f.5.azurestaticapps.net',
   optionSuccessStatus:200
-};
-app.use(cors(corsOptions));
+};*/
+app.use(cors());
 
 // Connect to PostgreSQL
 syncDatabase();
