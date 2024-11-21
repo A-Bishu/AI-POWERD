@@ -30,7 +30,7 @@ const corsOptions = {
   origin:'https://lively-field-044a0b80f.5.azurestaticapps.net',
   optionSuccessStatus:200
 };*/
-app.use(cors());
+app.use(cors({origin:'https://lively-field-044a0b80f.5.azurestaticapps.net'}));
 
 // Connect to PostgreSQL
 syncDatabase();
