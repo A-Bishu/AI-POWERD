@@ -6,7 +6,7 @@ const Ajv = require('ajv');
 const ajv = new Ajv();
 const dotenv = require('dotenv');
 const cors = require('cors');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+//const { createProxyMiddleware } = require('http-proxy-middleware');
 const OpenAI = require('openai');
 const axios = require('axios');
 
