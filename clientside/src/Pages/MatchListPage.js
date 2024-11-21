@@ -38,7 +38,7 @@ const MatchListPage = () => {
     const fetchMatches = async () => {
       const competition = new URLSearchParams(location.search).get('competition');
       const token = process.env.REACT_APP_SOCCER_API_KEY;
-      const baseUrl = process.env.REACT_APP_SOCCER_API_BASE_URL;
+      const apiBaseUrls = process.env.REACT_APP_SOCCER_API_BASE_URL;
 
       if (!competition) {
         setError('No competition ID provided.');
@@ -46,7 +46,7 @@ const MatchListPage = () => {
         return;
       }
 
-      if (!token || !baseUrl) {
+      if (!token || !apiBaseUrls) {
         setError('API token or base URL is missing. Please check your environment variables.');
         setLoading(false);
         return;
@@ -59,7 +59,7 @@ const MatchListPage = () => {
         const endDate = dayjs().add(1, 'month').format('YYYY-MM-DD');
         const dateRange = `${startDate}_${endDate}`;
 
-        const response = await axios.get(`${baseUrl}/competition/${competition}/matches`, {
+        const response = await axios.get(`${apiBaseUrls}/competition/${competition}/matches`, {
           params: {
             token,
             status: 1,
