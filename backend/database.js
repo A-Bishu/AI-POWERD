@@ -40,16 +40,21 @@ const MatchPrediction = require('./models/MatchPrediction')(sequelize);
 const syncDatabase = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Database connection has been established successfully.');
+    console.log('Database connection established successfully.');
 
     if (!isProduction) {
-      await sequelize.sync({ alter: true });
-      console.log('Database synchronized successfully.');
+      await sequelize.sync({ alter: true }); // Update schema in development
+      console.log('Database schema synchronized successfully.');
     }
   } catch (error) {
-    console.error('Unable to connect to the database:', error);
+    if (error.name === 'SequelizeConnectionError') {
+      console.error('Database connection error:', error.message);
+    } else {
+      console.error('Error during database synchronization:', error.message);
+    }
   }
 };
+
 
 // Export sequelize instance, syncDatabase, and models
 module.exports = { sequelize, syncDatabase, User, MatchPrediction };
