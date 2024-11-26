@@ -1,0 +1,10 @@
+{
+    "routes": [
+      {
+        "route": "/api/*",
+        "serve": "https://backend-app-service.azurewebsites.net/api/*",
+        "statusCode": 200
+      }
+    ]
+  }
+  
