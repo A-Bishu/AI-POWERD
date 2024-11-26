@@ -6,7 +6,7 @@ const Ajv = require('ajv');
 const ajv = new Ajv();
 const dotenv = require('dotenv');
 const cors = require('cors');
-//const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const OpenAI = require('openai');
 const axios = require('axios');
 
@@ -25,12 +25,12 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 
 app.use(express.json());
-/*
+
 const corsOptions = {
-  origin:'https://lively-field-044a0b80f.5.azurestaticapps.net',
+  origin:'https://proud-field-09fe90210.5.azurestaticapps.net',
   optionSuccessStatus:200
-};*/
-app.use(cors());
+};
+app.use(cors(corsOptions));
 
 // Connect to PostgreSQL
 syncDatabase();
@@ -96,7 +96,7 @@ const loadCsvData = async () => {
       console.error('Unable to connect to the database:', error);
     }
   })();
-/*
+
 // Proxy middleware setup for basketball
 app.use('/api/basketball', createProxyMiddleware({
     target: 'https://basketball.entitysport.com',
@@ -116,7 +116,7 @@ app.use('/api/basketball', createProxyMiddleware({
       },
     })
   );
-*/
+
 // Define Routes
 app.use('/api/auth', require('./routes/auth'));
 
