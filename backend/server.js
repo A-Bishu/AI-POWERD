@@ -35,7 +35,7 @@ app.use(cors(corsOptions));
 // Connect to PostgreSQL
 syncDatabase();
 
-const path = require('path');
+
 
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, '../clientside/build')));
