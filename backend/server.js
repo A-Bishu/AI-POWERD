@@ -22,7 +22,7 @@ dotenv.config();
 
 const openai = new OpenAI(process.env.OPENAI_API_KEY);
 const app = express();
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT
 
 app.use(express.json());
 
@@ -35,8 +35,14 @@ app.use(cors(corsOptions));
 // Connect to PostgreSQL
 syncDatabase();
 
-app.get('/', (req, res) => {
-  res.send('Welcome to the API');
+const path = require('path');
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../clientside/build')));
+
+// For any other route, serve the React index.html file
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../clientside/build', 'index.html'));
 });
 
 
