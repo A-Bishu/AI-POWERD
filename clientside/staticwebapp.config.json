@@ -2,7 +2,7 @@
     "routes": [
       {
         "route": "/api/*",
-        "serve": "https://backend-app-service.azurewebsites.net/api/*",
+        "serve": "https://mysportbackend-gaa9gpavame2hmhv.westus2-01.azurewebsites.net/api/*",
         "statusCode": 200
       }
     ]
