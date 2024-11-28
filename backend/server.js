@@ -25,12 +25,12 @@ const app = express();
 const PORT = process.env.PORT
 
 app.use(express.json());
-
+/*
 const corsOptions = {
   origin: process.env.CLIENT_ORIGIN || 'https://proud-field-09fe90210.5.azurestaticapps.net',
   optionSuccessStatus: 200,
-};
-app.use(cors(corsOptions));
+};*/
+app.use(cors());
 
 
 // Connect to PostgreSQL
@@ -38,18 +38,13 @@ syncDatabase();
 
 
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../clientside/build')));
 
 // API Routes (Optional: Add actual API routes here)
 app.get('/api', (req, res) => {
   res.json({ message: 'Welcome to the API!' });
 });
 
-// For any other route, serve the React index.html file
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../clientside/build', 'index.html'));
-});
+
 
 
 // Helper function to parse a CSV file
