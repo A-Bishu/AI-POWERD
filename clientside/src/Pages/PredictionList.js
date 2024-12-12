@@ -52,6 +52,15 @@ const PredictionList = () => {
     const fetchPredictions = async () => {
       setLoading(true);
       const baseUrl = process.env.REACT_APP_BACKEND_URL ;
+      console.log('Base URL:', baseUrl);
+
+      if (!baseUrl) {
+        setError('Backend URL is not defined. Please check your environment variables.');
+        setLoading(false);
+        return;
+      }
+
+      
       try {
         const response = await axios.get(`${baseUrl}/match-predictions`, {
           params: {
