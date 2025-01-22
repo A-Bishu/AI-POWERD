@@ -1,9 +1,7 @@
 # Node modules
 /node_modules
 
-# Environment variables
-/.env
-/.env.*
+
 
 # Package lock
 /package-lock.json

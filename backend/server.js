@@ -22,32 +22,24 @@ dotenv.config();
 
 const openai = new OpenAI(process.env.OPENAI_API_KEY);
 const app = express();
-const PORT = process.env.PORT
+const PORT = process.env.PORT ||3003
 
 app.use(express.json());
 
-const corsOptions = {
-  origin: process.env.CLIENT_ORIGIN || 'https://proud-field-09fe90210.5.azurestaticapps.net',
-  optionSuccessStatus: 200,
-};
-app.use(cors(corsOptions));
+app.use(cors());
 
 
 // Connect to PostgreSQL
 syncDatabase();
 
-
+/*
 
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../clientside/build')));
-
-
-
-// For any other route, serve the React index.html file
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../clientside/build', 'index.html'));
+app.use(express.static('./clientside/build'));
+app.get('*',(req, res) => {
+  res.sendFile(path.resolve(__dirname, 'clientside', 'build', 'index.html'));
 });
-
+*/
 
 // Helper function to parse a CSV file
 const parseCSV = (filePath, headers) => {
@@ -237,7 +229,7 @@ async function updateMatchesCache() {
 
 
 
-// Weathe fetching
+// Weather fetching
 async function fetchWeather(location) {
   const WEATHER_API_URL = `${process.env.WEATHER_API_BASE_URL}?q=${location}&appid=${process.env.WEATHER_API_KEY}&units=metric`;
     
