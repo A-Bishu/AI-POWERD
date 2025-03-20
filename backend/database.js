@@ -28,11 +28,11 @@ const sequelizeConfig = {
 
 if (isProduction) {
   sequelizeConfig.dialectOptions = {
-    
+    /*
     ssl: {
       require: true,
       rejectUnauthorized: false, // Allows self-signed certificates
-    },
+    },*/
   };
 }
 
