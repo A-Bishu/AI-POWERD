@@ -1,7 +1,7 @@
 {
   "name": "clientside",
   "version": "0.1.0",
-  "proxy": "http://localhost:3003",
+  "proxy": "http://localhost:3005",
   "private": true,
   "dependencies": {
     "@craco/craco": "^7.1.0",
