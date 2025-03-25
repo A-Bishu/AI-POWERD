@@ -26,23 +26,14 @@ const PORT = process.env.PORT ||3005
 
 app.use(express.json());
 
-app.use(cors(/*{
-  origin: 'https://witty-ocean-0b0dbf910.4.azurestaticapps.net'
-}*/));
+app.use(cors());
 
 
 // Connect to PostgreSQL
 syncDatabase();
 
 
-/*
-// Serve static files from the React app
-app.use(express.static('./clientside/build'));
-app.get('*',(req, res) => {
-  res.sendFile(path.resolve(__dirname, 'clientside', 'build', 'index.html'));
-});
 
-*/
 // Helper function to parse a CSV file
 const parseCSV = (filePath, headers) => {
     return new Promise((resolve, reject) => {
