@@ -235,7 +235,7 @@ const MatchListPage = () => {
                         {/* Match Date */}
                         <Box sx={{ textAlign: 'center', mt: 1 }}>
                           <Typography variant="body2" color="textSecondary">
-                            {dayjs(match.datestart).format('MMMM D, YYYY h:mm A')}
+                            {dayjs(match.datestart).format('dddd, MMM D • h:mm A')}
                           </Typography>
                         </Box>
 
