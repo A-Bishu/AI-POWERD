@@ -33,6 +33,10 @@ app.use(cors());
 syncDatabase();
 
 
+app.get('/', (req, res) => {
+  res.send('Backend is up and running!');
+});
+
 
 // Helper function to parse a CSV file
 const parseCSV = (filePath, headers) => {
